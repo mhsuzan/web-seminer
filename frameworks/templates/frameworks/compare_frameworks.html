@@ -5,60 +5,210 @@
 {% block content %}
 <div class="card">
     <h2>Compare Frameworks</h2>
+    <p style="color: #666; margin-top: 0.5rem;">
+        Select two or more frameworks to compare their similarities and differences.
+    </p>
     <form method="get" style="margin-top: 1rem;">
         <div class="form-group">
             <label>Select frameworks to compare:</label>
-            <div class="checkbox-group">
+            <div class="checkbox-group" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 1rem; border-radius: 5px;">
                 {% for framework in frameworks %}
-                <div class="checkbox-item">
+                <div class="checkbox-item" style="margin-bottom: 0.5rem;">
                     <input type="checkbox" name="frameworks" value="{{ framework.id }}" 
                            id="fw_{{ framework.id }}"
                            {% if selected_frameworks and framework in selected_frameworks %}checked{% endif %}>
-                    <label for="fw_{{ framework.id }}" style="margin: 0;">{{ framework.name }}</label>
+                    <label for="fw_{{ framework.id }}" style="margin: 0; margin-left: 0.5rem;">
+                        {{ framework.name }} {% if framework.year %}({{ framework.year }}){% endif %}
+                    </label>
                 </div>
                 {% endfor %}
             </div>
         </div>
-        <button type="submit" class="btn">Compare</button>
+        <button type="submit" class="btn">Compare Frameworks</button>
     </form>
 </div>
 
-{% if comparison_data %}
+{% if selected_frameworks and comparison_data %}
 <div class="card">
-    <h3>Comparison Results</h3>
+    <h3>Comparison Summary</h3>
     <p class="results-count">
-        Comparing {{ selected_frameworks.count }} framework{{ selected_frameworks.count|pluralize }}:
-        {% for fw in selected_frameworks %}{{ fw.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        Comparing <strong>{{ selected_frameworks.count }}</strong> framework{{ selected_frameworks.count|pluralize }}:
+        {% for fw in selected_frameworks %}<strong>{{ fw.name }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}
     </p>
     
+    {% if similarities %}
+    <div style="margin-top: 1rem; padding: 1rem; background-color: #e8f5e9; border-radius: 5px;">
+        <h4 style="color: #2e7d32; margin-top: 0;">✓ Similarities ({{ similarities|length }} criteria in ALL frameworks):</h4>
+        <p style="margin: 0.5rem 0;">
+            {% for sim in similarities %}
+                <span class="badge badge-success" style="margin-right: 0.5rem; margin-bottom: 0.5rem;">{{ sim }}</span>
+            {% endfor %}
+        </p>
+    </div>
+    {% endif %}
+    
+    {% if differences %}
+    <div style="margin-top: 1rem; padding: 1rem; background-color: #fff3e0; border-radius: 5px;">
+        <h4 style="color: #e65100; margin-top: 0;">⚠ Differences (criteria in some but not all frameworks):</h4>
+        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+            {% for diff in differences %}
+            <li style="margin-bottom: 0.5rem;">
+                <strong>{{ diff.criterion }}</strong> - 
+                Found in {{ diff.in_frameworks }} of {{ diff.total }} framework{{ diff.total|pluralize }}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>Framework Details Comparison</h3>
     <div style="overflow-x: auto; margin-top: 1rem;">
-        <table>
+        <table style="width: 100%; border-collapse: collapse;">
             <thead>
+                <tr style="background-color: #f5f5f5;">
+                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd; min-width: 150px;">Field</th>
+                    {% for fw in selected_frameworks %}
+                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd; min-width: 250px;">
+                        {{ fw.name }}<br>
+                        <small style="color: #666; font-weight: normal;">{% if fw.year %}{{ fw.year }}{% endif %}</small>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
                 <tr>
-                    <th>Criterion</th>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Authors</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.authors|default:"—" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Year</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.year|default:"—" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Title</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.title|default:"—" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Abstract</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.description|truncatewords:30|default:"—" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Objectives</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.objectives|truncatewords:30|default:"—" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Methodology</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.methodology|truncatewords:30|default:"—" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Algorithm Used</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.algorithm_used|default:"—" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Top Model</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.top_model|default:"—" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Accuracy</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.accuracy|default:"—" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Advantages</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.advantages|truncatewords:30|default:"—" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Drawbacks</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.drawbacks|truncatewords:30|default:"—" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Source</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.source|default:"—" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Total Criteria</td>
+                    {% for fw_detail in framework_details %}
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">
+                        <strong>{{ fw_detail.criteria_count }}</strong>
+                    </td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Criteria Comparison</h3>
+    <p style="color: #666; margin-top: 0.5rem;">
+        Comparing {{ comparison_data|length }} unique criteria across selected frameworks.
+    </p>
+    <div style="overflow-x: auto; margin-top: 1rem;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #f5f5f5;">
+                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd; min-width: 200px;">Criterion</th>
                     {% for framework in selected_frameworks %}
-                    <th>{{ framework.name }}</th>
+                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd; min-width: 300px;">
+                        {{ framework.name }}<br>
+                        <small style="color: #666; font-weight: normal;">{% if framework.year %}{{ framework.year }}{% endif %}</small>
+                    </th>
                     {% endfor %}
                 </tr>
             </thead>
             <tbody>
                 {% for criterion in comparison_data %}
                 <tr>
-                    <td><strong>{{ criterion.name }}</strong></td>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">
+                        {{ criterion.name }}
+                        {% if criterion.name in similarities %}
+                            <span class="badge badge-success" style="margin-left: 0.5rem; font-size: 0.7rem;">In All</span>
+                        {% endif %}
+                    </td>
                     {% for fw_data in criterion.framework_data %}
-                    <td>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">
                         {% if fw_data.has_criterion %}
                             <span class="badge badge-success">✓ Included</span>
                             {% if fw_data.category %}
-                                <br><small style="color: #666;">Category: {{ fw_data.category }}</small>
+                                <br><small style="color: #666; display: block; margin-top: 0.25rem;">
+                                    <strong>Category:</strong> {{ fw_data.category }}
+                                </small>
                             {% endif %}
                             {% if fw_data.description %}
-                                <br><small style="color: #666;">{{ fw_data.description|truncatewords:15 }}</small>
+                                <br><small style="color: #666; display: block; margin-top: 0.25rem;">
+                                    <strong>Description:</strong> {{ fw_data.description|truncatewords:20 }}
+                                </small>
                             {% endif %}
                             {% if fw_data.definitions %}
-                                <br><small style="color: #666;">
+                                <br><small style="color: #666; display: block; margin-top: 0.25rem;">
+                                    <strong>Definition:</strong> 
                                     {% for def in fw_data.definitions|slice:":1" %}
-                                        {{ def|truncatewords:10 }}
+                                        {{ def|truncatewords:15 }}
                                     {% endfor %}
                                 </small>
                             {% endif %}
@@ -74,11 +224,4 @@
     </div>
 </div>
 {% endif %}
-{% endblock %}
-
-{% block extra_js %}
-<script>
-// Helper function for template (since Django doesn't have dict filter by default)
-// We'll handle this server-side instead
-</script>
 {% endblock %}

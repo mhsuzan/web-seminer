@@ -7,13 +7,22 @@
     <h2>Knowledge Graph Quality Frameworks Comparison</h2>
     <p style="margin-top: 1rem; color: #666;">
         Compare and analyze Knowledge Graph quality frameworks and criteria catalogs from literature.
-        Answer questions like:
+        This web app answers questions like:
     </p>
     <ul style="margin-top: 1rem; margin-left: 2rem; color: #666;">
-        <li>What are the similarities and differences between frameworks?</li>
-        <li>Which frameworks include a specific criterion?</li>
-        <li>What are the different definitions of criteria across frameworks?</li>
+        <li><strong>"What are the similarities and differences between frameworks by Chen et al. 2019 and Li et al. 2023?"</strong>
+            <br><small style="color: #999;">→ Use the <a href="{% url 'frameworks:compare_frameworks' %}" style="color: #667eea;">Compare Frameworks</a> feature</small>
+        </li>
+        <li><strong>"Which frameworks include the criterion completeness?"</strong>
+            <br><small style="color: #999;">→ Use the <a href="{% url 'frameworks:search_criteria' %}" style="color: #667eea;">Search Criteria</a> feature</small>
+        </li>
+        <li><strong>"What are the different definitions of completeness according to different criteria catalogs?"</strong>
+            <br><small style="color: #999;">→ Use the <a href="{% url 'frameworks:criterion_definitions' %}" style="color: #667eea;">Criterion Definitions</a> feature</small>
+        </li>
     </ul>
+    <p style="margin-top: 1.5rem; padding: 1rem; background-color: #e8f5e9; border-radius: 5px; color: #2e7d32;">
+        <strong>All comparisons are displayed in table format</strong> for easy analysis and comparison.
+    </p>
 </div>
 
 <div class="card">

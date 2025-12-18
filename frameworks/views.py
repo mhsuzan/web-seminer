@@ -41,7 +41,7 @@ def framework_detail(request, framework_id):
 
 
 def compare_frameworks(request):
-    """Compare two or more frameworks"""
+    """Compare two or more frameworks - shows similarities and differences"""
     framework_ids = request.GET.getlist('frameworks')
     
     if not framework_ids:
@@ -50,6 +50,7 @@ def compare_frameworks(request):
             'frameworks': frameworks,
             'selected_frameworks': None,
             'comparison_data': None,
+            'framework_details': None,
         })
     
     selected_frameworks = Framework.objects.filter(id__in=framework_ids).order_by('-year', 'name')
@@ -58,7 +59,7 @@ def compare_frameworks(request):
     all_criteria = Criterion.objects.filter(framework_id__in=framework_ids).values('name').distinct()
     criteria_names = sorted([c['name'] for c in all_criteria])
     
-    # Build comparison data - use list of tuples for easier template access
+    # Build comparison data for criteria
     comparison_data = []
     for criterion_name in criteria_names:
         criterion_rows = []
@@ -86,10 +87,52 @@ def compare_frameworks(request):
             'framework_data': criterion_rows,
         })
     
+    # Build framework details comparison (all fields)
+    framework_details = []
+    for framework in selected_frameworks:
+        framework_details.append({
+            'id': framework.id,
+            'name': framework.name,
+            'authors': framework.authors,
+            'year': framework.year,
+            'title': framework.title,
+            'description': framework.description,
+            'objectives': framework.objectives,
+            'methodology': framework.methodology,
+            'algorithm_used': framework.algorithm_used,
+            'top_model': framework.top_model,
+            'accuracy': framework.accuracy,
+            'advantages': framework.advantages,
+            'drawbacks': framework.drawbacks,
+            'source': framework.source,
+            'criteria_count': framework.criteria.count(),
+        })
+    
+    # Calculate similarities and differences
+    similarities = []
+    differences = []
+    
+    # Similarities: criteria that appear in ALL frameworks
+    if len(selected_frameworks) > 1:
+        for criterion_name in criteria_names:
+            frameworks_with_criterion = sum(1 for fw in selected_frameworks 
+                if Criterion.objects.filter(framework=fw, name=criterion_name).exists())
+            if frameworks_with_criterion == len(selected_frameworks):
+                similarities.append(criterion_name)
+            elif frameworks_with_criterion > 0:
+                differences.append({
+                    'criterion': criterion_name,
+                    'in_frameworks': frameworks_with_criterion,
+                    'total': len(selected_frameworks)
+                })
+    
     context = {
         'frameworks': Framework.objects.all().order_by('-year', 'name'),
         'selected_frameworks': selected_frameworks,
         'comparison_data': comparison_data,
+        'framework_details': framework_details,
+        'similarities': similarities,
+        'differences': differences,
     }
     return render(request, 'frameworks/compare_frameworks.html', context)
 

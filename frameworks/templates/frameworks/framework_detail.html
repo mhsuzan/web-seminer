@@ -6,11 +6,82 @@
 <div class="card">
     <h2>{{ framework.name }}</h2>
     <div style="margin-top: 1rem;">
-        {% if framework.authors %}<p><strong>Authors:</strong> {{ framework.authors }}</p>{% endif %}
-        {% if framework.year %}<p><strong>Year:</strong> {{ framework.year }}</p>{% endif %}
-        {% if framework.title %}<p><strong>Title:</strong> {{ framework.title }}</p>{% endif %}
-        {% if framework.source %}<p><strong>Source:</strong> {{ framework.source }}</p>{% endif %}
-        {% if framework.description %}<p style="margin-top: 1rem;"><strong>Description:</strong> {{ framework.description }}</p>{% endif %}
+        <table style="width: 100%;">
+            <tbody>
+                {% if framework.authors %}
+                <tr>
+                    <td style="width: 150px; font-weight: bold; vertical-align: top;">Authors:</td>
+                    <td>{{ framework.authors }}</td>
+                </tr>
+                {% endif %}
+                {% if framework.year %}
+                <tr>
+                    <td style="font-weight: bold; vertical-align: top;">Year:</td>
+                    <td>{{ framework.year }}</td>
+                </tr>
+                {% endif %}
+                {% if framework.title %}
+                <tr>
+                    <td style="font-weight: bold; vertical-align: top;">Title:</td>
+                    <td>{{ framework.title }}</td>
+                </tr>
+                {% endif %}
+                {% if framework.description %}
+                <tr>
+                    <td style="font-weight: bold; vertical-align: top;">Abstract:</td>
+                    <td>{{ framework.description }}</td>
+                </tr>
+                {% endif %}
+                {% if framework.objectives %}
+                <tr>
+                    <td style="font-weight: bold; vertical-align: top;">Objectives:</td>
+                    <td>{{ framework.objectives }}</td>
+                </tr>
+                {% endif %}
+                {% if framework.methodology %}
+                <tr>
+                    <td style="font-weight: bold; vertical-align: top;">Methodology:</td>
+                    <td>{{ framework.methodology }}</td>
+                </tr>
+                {% endif %}
+                {% if framework.algorithm_used %}
+                <tr>
+                    <td style="font-weight: bold; vertical-align: top;">Algorithm Used:</td>
+                    <td>{{ framework.algorithm_used }}</td>
+                </tr>
+                {% endif %}
+                {% if framework.top_model %}
+                <tr>
+                    <td style="font-weight: bold; vertical-align: top;">Top Model:</td>
+                    <td>{{ framework.top_model }}</td>
+                </tr>
+                {% endif %}
+                {% if framework.accuracy %}
+                <tr>
+                    <td style="font-weight: bold; vertical-align: top;">Accuracy:</td>
+                    <td>{{ framework.accuracy }}</td>
+                </tr>
+                {% endif %}
+                {% if framework.advantages %}
+                <tr>
+                    <td style="font-weight: bold; vertical-align: top;">Advantages:</td>
+                    <td>{{ framework.advantages }}</td>
+                </tr>
+                {% endif %}
+                {% if framework.drawbacks %}
+                <tr>
+                    <td style="font-weight: bold; vertical-align: top;">Drawbacks:</td>
+                    <td>{{ framework.drawbacks }}</td>
+                </tr>
+                {% endif %}
+                {% if framework.source %}
+                <tr>
+                    <td style="font-weight: bold; vertical-align: top;">Source:</td>
+                    <td>{{ framework.source }}</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
     </div>
 </div>
 
