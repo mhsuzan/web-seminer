@@ -1,0 +1,425 @@
+sources to be used for database: Comprehensive Literature Review for Assessing knowledge graph quality: Frameworks and catalogs
+The following table present a structured, analytical comparison of 28 key studies:
+
+S.N
+Title
+Published year
+Abstract
+Objectives
+Methodology
+Algorithm used
+Top Model
+Accuracy
+Advantages
+Drawbacks
+Dimensions
+Reference
+1
+Quality assessment for Linked Data: A Survey
+2015
+Summarizes linked data quality assessment papers, introducing existing methods, and categorizing dimensions into six groups.
+To provide a theoretical foundation for future research and propose a unified description of data quality terms, dimensions, and measurement indicators.
+Literature review and categorization; conceptual proposal for unified terminology.
+N/A (Survey/Review)
+Foundational Taxonomy
+N/A
+Comprehensive foundational categorization (6 dimensions); establishes baseline terminology for the domain.
+Did not specify tooling; lack of focus on end-to-end operational systems or large-scale KG-specific algorithms.
+Availability, Licensing, Interlinking, Security, Performance,
+Syntactic
+Validity, Semantic
+Accuracy, Consistency, Conciseness, Completeness, Relevancy, Trustworthiness, Understandability, Timeliness, Representational-
+Conciseness, Interoperability, Interpretability, Versatility.
+Read
+2
+Linked Data Quality Assessment: A Survey
+2022
+Identifies state of the art, highlighting fragmentation, and proposing a solution based on ontology to build an end-to-end system.
+To identify existing end-to-end frameworks and propose a standard scalable system that integrates quality issue identification, evaluation, and improvement.
+Survey analysis; proposed an ontology-based solution (FSDCQ ontology) to analyze root causes of quality violations.
+Ontology-based reasoning (SWRL), Fuzzy Inference 
+FSDCQ Ontology
+Equally good as k-NN (for feature selection recommendation) 
+Highlights the critical need for end-to-end refinement systems; identifies core limitations of prior work.
+Most frameworks reviewed were fragmented, dealing with only one aspect of quality; many focused solely on DBpedia.
+Availability, Licensing, Interlinking, Security, Performance,
+Syntactic
+Validity, Semantic
+Accuracy, Consistency, Conciseness, Completeness, Relevancy, Trustworthiness, Understandability, Timeliness, Representational-
+Conciseness, Interoperability, Interpretability, Versatility.
+Read
+3
+Luzzu - A Methodology and Framework for Linked Data Quality Assessment
+2016
+Presents Luzzu, a framework for Linked Data Quality Assessment based on an extensible interface and an ontology-driven back-end.
+To define a holistic data quality lifecycle and provide a framework that is scalable, extensible, and interoperable for assessing Linked Data quality.
+Conceptual methodology; Framework implementation using a scalable stream processor for efficiency, and an ontology-driven back-end for quality metadata.
+Stream processing
+Luzzu Framework
+N/A (Tool/Framework)
+Scalable through stream processing; highly extensible via interfaces for new metrics; interoperable via DQV-compatible metadata .
+Early ranking algorithms lacked sophisticated tie-breakers based on internal dataset characteristics (e.g., number of triples).
+Availability, Performance, Licencing, Interoperability, Provenance, Representational
+Conciseness, Versatility, Interpretability, 
+Consistency.
+Read
+4
+Efficient Knowledge Graph Accuracy Evaluation
+2019
+Proposes an efficient sampling framework to estimate large-scale KG accuracy with strong statistical guarantees while minimizing the cost of human annotation.
+To obtain statistically meaningful estimates for accuracy evaluation while dramatically minimizing the required human efforts (annotation costs).
+Application of sampling theory; analysis of annotation cost functions; extension for dynamic/incremental evaluation.
+Cluster Sampling, Stratified Sampling, Weighted Reservoir Sampling 
+Efficient Sampling Framework
+Up to 60% cost reduction (static KG); Up to 80% cost reduction (evolving KG) 
+Makes large-scale, gold-standard accuracy checks economically feasible; provides statistically guaranteed estimates for precision/recall.
+Focuses predominantly on the Accuracy dimension, requiring external human annotation expertise.
+Accuracy, Cost Effectiveness (Value added), Timeliness (Efficiency focus)
+Read
+5
+Assessing the Quality of a Knowledge Graph via Link Prediction Tasks (LP-Measure)
+2024
+Introduces the LP-Measure, an automated approach to assess consistency and redundancy using link prediction tasks, eliminating the need for gold standards.
+To automatically assess consistency and redundancy in KGs, serving as an effective, quantitative proxy for correctness and completeness.
+Automated evaluation by training link prediction models on the KG and testing their ability to recover intentionally removed triples.
+Link Prediction Models (KG embedding techniques) 
+LP-Measure
+Effective in distinguishing high-quality KGs from low-quality KGs 
+Automated and scalable; eliminates the need for expensive gold standards or human labor; correlates strongly with correctness.
+Metric fundamentally assesses consistency/redundancy; cannot assess correctness/completeness directly (when gold standards are absent).
+Availability, Licensing, Interlinking, Security, Performance,
+Relevancy, Trustworthiness, Understandability, Timeliness, Validity, Semantic
+Accuracy, Consistency, Conciseness, Completeness, Representational-
+Conciseness, Interoperability, Interpretability, Versatility. 
+Read
+6
+KGMM -A Maturity Model for Scholarly Knowledge Graphs based on Intertwined Human-Machine Collaboration
+2022
+Proposes the Knowledge Graph Maturity Model (KGMM) as a structured framework for evaluating KG maturity across five levels.
+To provide a structured approach for assessing maturity, promoting evolutionary curation, and incorporating 20 quality measures.
+Development of a graded framework (KGMM) based on the principles of the Capability Maturity Model (CMM), focusing on human-machine collaboration.
+N/A (Maturity Model/Framework)
+Knowledge Graph Maturity Model (KGMM)
+Qualitative (Process Maturity).
+Provides a governance layer for continuous improvement; assesses organizational process maturity necessary for sustained quality.
+Adoption and long-term industrial impact are still being assessed; theoretical framework.
+Accuracy, Completeness, Findability, Accessibility, Interoperability, Reusability, Succinctness.
+Read
+7
+Structural Quality Metrics to Evaluate Knowledge Graph Quality
+2022
+Presents six structural quality metrics (ICR, IPR, CI, IMI, SPA, SPI) to evaluate KGs based on the specificity and active usage of the underlying ontology (structure).
+To devise a measure to compare KG quality based on the premise that structure (=ontology) is a key factor, moving beyond metrics focused solely on size/distribution.
+Defined and applied six structural quality metrics to compare six cross-domain KGs (Wikidata, DBpedia, YAGO, Freebase, Google KG, Raftel).
+Statistical measures of ontology structure (ICR, IPR, CI, IMI, SPA, SPI) 
+Structural Metrics Model
+N/A (Structural comparison)
+Provides a novel viewpoint linking quality directly to schema richness and usage; effective for comparative, high-level assessment.
+Focuses on schema quality (T-box); generally omits instance-level semantic correctness; technical part (formal property definition) can be improved.
+Consistent representation, Concise representation, Interpretability, Ease of understanding, Structural Consistency
+Read
+8
+Introducing the Data Quality Vocabulary (DQV)
+2021
+Defines the W3C standardized vocabulary for describing quality metadata in a machine-readable format.
+To provide a consistent means for potential users to judge a dataset's fitness for purpose by standardizing how quality information (metrics, measurements) is provided.
+W3C standardization process; development of an RDF vocabulary, defining concepts like dqv:Metric and dqv:Dimension.
+N/A (Vocabulary Definition)
+DQV Vocabulary
+N/A (Standard)
+Ensures interoperability and standardized reporting of quality assessment results across heterogeneous tools and datasets.
+DQV is purely a descriptive framework; it does not perform assessment or define a single, formal definition of quality.
+Accuracy, Completeness, Consistency, Credibility, Currentness, Accessibility, Compliance, Confidentiality, Efficiency, Precision, Traceability, Understandability, Availability, Portability, Recoverability.
+Read
+9
+Data Quality in Context
+1997
+Seminal work discussing data quality across various dimensions in organizational contexts.
+To shift the focus of data quality discussions beyond mere accuracy to a broader contextual understanding of fitness for use.
+Conceptual analysis and development of a multi-dimensional framework for data quality evaluation by data consumers.
+N/A (Conceptual Foundations)
+Data Quality Dimensions Framework
+N/A (Conceptual)
+Provided the foundational conceptual basis for subsequent standardized catalogs like ISO 25012.
+Did not address the specifics of graph-based data structures or automated assessment algorithms common today.
+Accessibility, Accuracy, Appropriate Amount, Believability, Completeness, Concise Representation, Consistent Representation, Ease of Understanding, Interpretability, Objectivity, Relevancy, Reputation, Security, Timeliness, Value Added.
+Read
+10
+From Genesis to Maturity: Managing Knowledge Graph Ecosystems Through Life Cycles
+2025
+Vision paper addressing challenges in managing KGs, proposing KGE ecosystems and life cycles to systematically manage tasks like standardization, continuous updates, and provenance tracking.
+To systematically manage KGE tasks to enhance accuracy, consistency, and reliability of KGs.
+Vision paper, conceptual framework development focusing on defining KGE life cycles and actors.
+N/A (Vision/Conceptual)
+Knowledge Graph Ecosystem (KGE) Life Cycle Model
+N/A (Conceptual)
+Systematically manages creation, maintenance, and evolution; enhances accuracy, consistency, and reliability; addresses scalability of semantic operations.
+N/A explicitly mentioned, focuses on identifying and solving critical challenges.
+Accuracy, Consistent representation, Timeliness, Reliability, Reputation, Security, Scalability
+Read
+11
+Contextual knowledge graph approach to bias-reduced decision support systems
+2024
+Proposes a contextual KG approach to capture relationships between task/features/context, identifying bias in AI/ML model datasets. Uses debiased datasets for fairer decision-making.
+To identify bias in AI/ML datasets and support fairer decision-making.
+Contextual KG approach; proposed three bias assessment metrics (label, sampling, timeliness bias).
+N/A (Methodology, leverages ML models)
+Contextual Knowledge Graph Approach
+More effective in supporting fairer decision-making than existing methods (Experimental results) 
+Combines contextual knowledge for fairer decisions; defines specific bias metrics (label, sampling, timeliness bias).
+N/A explicitly mentioned.
+Objectivity (Bias), Timeliness, Accuracy, Relevancy, Value added, Fairness.
+Read
+12
+Beyond Accuracy: What data quality means to Data Consumers
+1996
+Shifted the focus of data quality discussions beyond mere accuracy to a broader contextual understanding of data quality for consumers.
+To define data quality from the data consumer's perspective.
+Conceptual framework development.
+N/A (Conceptual)
+Data Quality Dimensions Framework
+N/A (Conceptual)
+Provided the early conceptual basis for subsequent DQ standards and dimensions.
+Pre-dates modern graph structures and automated assessment.
+Accessibility, Accuracy, Appropriate Amount, Believability, Completeness, Concise Representation, Consistent Representation, Ease of Understanding, Interpretability, Objectivity, Relevancy, Reputation, Security, Timeliness, Value Added.
+Read
+13
+FAIR Data Maturity Model: specification and guidelines
+2020
+Establishes a common set of core assessment criteria and maturity levels for evaluating FAIRness.
+Develop a common set of core assessment criteria for FAIRness and help organizations determine if data resources meet required quality thresholds.
+The Working Group established indicators and maturity levels.
+N/A (Specification/Guideline)
+RDA FAIR Data Maturity Model
+N/A (Guideline)
+Increases coherence and interoperability of existing FAIR assessment frameworks; provides a basis for benchmarking and improvement.7
+N/A explicitly mentioned.
+Findability, Accessibility, Interoperability, Reusability, Metadata Consistency
+Read
+14
+KGHeartBeat: a Knowledge Graph Quality
+Assessment Tool
+2024
+An open-source tool for periodically evaluating the quality of KGs.
+To provide continuous, operational quality monitoring.
+Open source tool development focusing on periodic assessment.
+Quality checks/metrics implemented within the tool 
+KGHeartBeat.
+N/A (Tool/Framework)
+Focuses on operational/continuous monitoring; used in comparative studies.
+N/A explicitly mentioned.
+Accessibility, Timeliness, Completeness, Accuracy, Consistent representation, Availability. 
+Read
+15
+Quality Without Borders: A Modular Approach to Unified
+Knowledge Graph Assessment
+2024/25
+Proposes a comprehensive Shared Framework to formally align KG-specific quality metrics, FAIR principles, and the 5-star open data scheme.
+Design a Shared Framework to systematically align existing quality paradigms and improve KG Findability.
+Systematic analysis and alignment; modular KG aggregator using crawlers, search APIs, and LLMs.
+LLM-guided discovery for aggregation 
+Shared Framework / "KG Weather Station"
+N/A (Conceptual/Proposal)
+Unified assessment, metric reusability, consistent/comparable results, enhanced understanding, improved Findability.
+Preliminary mapping is incomplete; certain FAIR principles (R1.3, A2) require new metrics; lack of validation across diverse domains.
+Accessibility, Interpretability, Relevancy, Value added, Consistent representation, Findability.
+Read
+15
+ISO/IEC 25012 Data Quality Model
+2014
+Defines 15 data quality characteristics categorized by Inherent (data itself) and System-Dependent (data quality preserved in a computer system) viewpoints.
+To provide standardized definitions for data quality characteristics.
+Standardization process, conceptual definition of characteristics.
+N/A (Standard)
+ISO/IEC 25012 Standard
+N/A (Standard)
+Provides comprehensive, standardized vocabulary for DQ characteristics (15 dimensions).
+Generic to all data, not specific to graph structures or semantic relationships.
+Accuracy, Completeness, Consistency, Credibility, Currentness, Accessibility, Compliance, Confidentiality, Efficiency, Precision, Traceability, Understandability, Availability, Portability, Recoverability.
+Read
+16
+From Data Quality to Big Data Quality: A Systematization
+2015
+Examines the relationship between Data Quality and Big Data characteristics (Variety, Volume), focusing on various data types (LOD, sensor data).
+Systematize the correlation between structural characteristics and quality dimensions in the context of Big Data.
+Systematic literature review and conceptual systematization.
+N/A (Conceptual)
+Big Data Quality Systematization
+N/A (Conceptual)
+Provides foundational context for applying DQ principles to Big Data and Linked Open Data.
+N/A explicitly mentioned.
+Consistency, Accuracy, Completeness, Timeliness, Volume (Appropriate Amount), Variety.
+Read
+17
+A Scalable Framework for Quality Assessment of RDF Datasets.
+2020
+Presents an open source implementation of quality assessment of large RDF datasets that can scale out to a cluster of machines.
+Provide a distributed, in-memory approach for computing quality metrics for large RDF datasets.
+Distributed implementation using Apache Spark.
+Apache Spark (Distributed Computing) 
+DistQualityAssessment Framework
+N/A (Tool/Framework)
+First distributed, in-memory approach for quality assessment; scalable to a cluster of machines.
+N/A explicitly mentioned.
+Timeliness (Performance), Completeness, Accuracy, Accessibility, Scalability.
+Read
+18
+A Novel Customizing Knowledge Graph Evaluation Method for Incorporating User Needs.
+2024
+Introduces an accuracy-focused KG evaluation method that incorporates user requirements. It designs an effective two-stage weighted cluster sampling (EP-TWCS) to focus on user-important entities. Experiments show the sampled accuracy closely matches true accuracy with minimal sample size.
+Ensure accuracy assessment of KGs in a cost-saving way that meets specific user requirements.
+EP-TWCS sampling: assigns weights based on user usage frequency and entity popularity, then performs stratified sampling to estimate KG accuracy.
+EP-TWCS (Entity Popularity – Two-stage Weighted Cluster Sampling)
+Sampling-based evaluation
+Accuracy of sampled assessment nearly equals real accuracy; sample size is minimized.
+User-centric: tailors sampling to what users care about; efficient (minimal sample size) while maintaining accuracy.
+Focuses only on the accuracy dimension of quality; requires knowledge of user usage weights; may not address completeness or consistency.
+Accuracy, Relevancy (User Needs), Value added, Timeliness (Efficiency).
+Read
+19
+Continuous Knowledge Graph Quality Assessment through Comparison using ABECTO.
+2024
+Presents ABECTO, a command-line tool for continuous QA of RDF knowledge graphs. It automatically compares multiple overlapping KGs to spot missing or incorrect values. The tool outputs quality annotations (deviations, completeness) over time, enabling CI-style monitoring.
+Automate periodic monitoring of KG accuracy and completeness without an ideal reference dataset.
+CLI framework that takes multiple KGs as input, computes differences (completeness and value deviations) by aligning overlapping entities and relations.
+ABECTO (automated graph comparison).
+Comparative analysis tool.
+Not applicable (qualitative tool); shown to improve detection of omissions and deviations in KG maintenance.
+Automates quality checks in CI pipelines; uses existing KGs as “reference” (silver standard); improves detected accuracy/completeness.
+Depends on availability of overlapping KGs; may miss defects if all compared KGs share the same errors.
+Completeness, Accuracy, Consistent representation, Timeliness, Reproducibility.
+Read
+20
+A Practical Framework for Evaluating the Quality of Knowledge Graphs.
+2019
+Surveys existing KG evaluation practices and proposes a practical quality framework. It identifies key dimensions (“fit for purpose”), selects metrics per use-case requirements, and suggests evaluation procedures (e.g., scalable sampling for metrics).
+Provide a “fit-for-purpose” quality assessment framework by linking user requirements to specific metrics and scalable evaluation methods.
+Literature analysis of prior studies; development of a framework mapping use-case needs to choose quality dimensions and metrics, and recommending feasible evaluation approaches (trade-offs between feasibility and scalability).
+
+
+Conceptual framework
+
+
+Focuses on practical applicability and scalability of KG QA; covers multiple dimensions guided by requirements.
+Conceptual (no empirical validation); framework-level only; actual tool or data not provided.
+Relevancy, Accuracy, Completeness, Timeliness, Value added.
+Read
+21
+Knowledge Graph Quality Management: A Comprehensive Survey.
+2023
+Provides a systematic survey of knowledge graph quality management, covering everything from theory to practice. It reviews quality issues, dimensions (accuracy, completeness, etc.), metrics, assessment methods, and quality improvement processes.
+Summarize and classify research on all aspects of KG quality (issues, dimensions, metrics, tools, processes).
+Comprehensive literature review; taxonomy of quality concepts; organization of methods for assessment, detection and completion of KGs; discussion of future directions.
+
+
+Survey (no single model)
+
+
+Very comprehensive coverage of KG quality topics; connects theory and practice; identifies open research directions.
+Only a survey (no new technique); rapidly becomes outdated as new methods emerge.
+Accuracy, Completeness, Consistency, Timeliness, Interpretability, Security, Trustworthiness.
+Read
+22
+Knowledge Graph Quality Control: A Survey
+2021
+Surveys Linked Data/KG quality control. Defines six evaluation dimensions (e.g., completeness, accuracy, timeliness, trust) and analyzes their relationships. Reviews how to identify and mitigate errors during KG construction and maintenance.
+Provide a comprehensive overview of KG quality control dimensions and corresponding techniques.
+Literature survey of KG quality dimensions; classification of control/treatment techniques (e.g., data cleaning, constraint enforcement) across the KG lifecycle.
+
+
+Survey (no single model)
+
+
+Clearly defines multiple quality dimensions; discusses both theoretical and practical treatments of quality issues.
+Survey only; may not cover very latest work; focuses on Linked Data (RDF) context.
+Accuracy, Completeness, Timeliness, Trustworthiness (Believability), Consistency, Security.
+Read
+23
+Knowledge Graph Refinement: A Survey of Approaches and Evaluation Methods
+2017
+Surveys KG refinement (completeness and error-correction). Reviews methods for inferring missing facts and detecting errors in KGs, along with their evaluation. Summarizes both completion and correction techniques, and categorizes evaluation methodologies.
+Provide an overview of techniques and evaluation practices for improving KG quality.
+Literature survey of KG completion/correction; categorizes methods (rule-based, ML, inference) and evaluation strategies (gold vs. silver standard, etc.)
+
+
+Survey (no single model)
+
+
+Comprehensive review of KG improvement methods (completion and cleaning) with attention to how they are evaluated.
+Focus on methods (not metrics per se); older (2016), so missing newer embedding/LLM approaches.
+Accuracy, Completeness, Consistent representation, Refinement (Value added).
+Read
+24
+Linked Data Quality Assessment through Network Analysis
+2011
+Proposes a framework to assess Linked Data quality from a global network perspective. Uses graph/network measures (e.g., degree, connectivity) to quantify whether newly added inter-dataset links improve or degrade data quality. Validated on known-quality link sets to detect quality changes.
+Determine at a global scale if adding links improves or hurts Linked Data quality using network properties.
+Builds global Linked Data graph (or subset), computes statistical network metrics (e.g., clustering, centralization) before and after adding links. Changes in metrics indicate quality improvement or degradation.
+LINK-QA (network-statistics-based QA).
+Network analysis framework.
+Validated on test cases of known good/bad links (effective at detecting quality changes).
+Does not require manual gold data; provides global summary of link quality; extensible by adding more network metrics.
+Focuses only on connectivity/structure (not semantics or content); may miss subtle data issues; requires selecting appropriate metrics.
+Consistent representation, Accessibility (Connectivity), Completeness, Navigability.
+Read
+25
+Harnessing Diverse Perspectives: A Multi-Agent Framework for Enhanced Error Detection in Knowledge Graphs (MAKGED).
+2025
+Introduces MAKGED, a multi-agent LLM+GCN approach for KG error detection. Four agents (head-forward/backward, tail-forward/backward) are trained on bidirectional subgraph embeddings concatenated with LLM query embeddings. They discuss and vote on each triple’s correctness. Outperforms SOTA by +0.73% on FB15k and +6.62% on WN18RR.
+Enhance triple error detection by combining structured graph views with LLM reasoning and multi-agent consensus.
+Build bidirectional subgraphs for head/tail of each triple; use GCN to embed structure and Llama2 for semantic embedding; train four specialized agents; agents independently evaluate triples then engage in multi-round discussion and vote on final decision.
+MAKGED (LLM+GCN multi-agent).
+Multi-agent (LLM + GCN).
+Achieves 0.73% (FB15k) and 6.62% (WN18RR) higher accuracy than previous best methods.
+Integrates fine-grained graph info with LLM knowledge; multi-agent discussion yields transparent, robust decisions; strong gains on benchmarks.
+High computational and implementation complexity; requires multiple LLMs/agents; performance depends on quality of subgraphs and LLM reasoning; novel (practical impact TBD).
+Accuracy, Objectivity (Consensus), Interpretability, Reliability, Consistent representation.
+Read
+26
+Linked Data – Design Issues.
+2006
+The document outlines the fundamental design principles behind Linked Data on the Web. It proposes a set of rules for how data should be identified, accessed, described, and linked to other resources to enable a global web of data. These ideas became the cornerstone of the Semantic Web and inspired many later frameworks for data and knowledge graph quality.
+To define the conceptual and technical foundations of Linked Data; to guide how web resources can be structured and connected using URIs and RDF so that both humans and machines can discover and interpret data efficiently.
+Conceptual design proposal based on Web architecture principles. Rather than an empirical or experimental study, Berners-Lee formulates prescriptive design rules derived from early web development experience and Semantic Web goals.
+No computational algorithm. The core “model” is a set of four Linked Data principles: (1) Use URIs as names for things, (2) Use HTTP URIs, (3) Provide useful RDF information upon lookup, (4) Include links to other URIs for discovery.
+The Linked Data Principles and, indirectly, the 5-Star Open Data model that extends these rules.
+Not a quantitative or empirical work; accuracy is conceptual. The “validation” comes from global adoption and the successful growth of the Linked Open Data cloud following these principles.
+- Established the foundation of Linked Data and the Semantic Web.
+- Introduced reusable, web-scalable identification and linking mechanisms.
+- Influenced all later data quality, interoperability, and accessibility frameworks (FAIR, DQV, ISO 25012, Zaveri 2015, etc.).
+- Promoted openness and machine-readability of web data.
+- No formal metrics or measurable criteria for quality.
+- Lacks guidance on assessing data correctness, completeness, or trust.
+- Doesn’t consider governance, provenance, or evolving knowledge graph structures.
+- Functions as a conceptual manifesto, not a testable framework.
+Accessibility, Interpretability, Relevancy (Interlinking), Consistent representation, Interoperability.
+Read
+27
+F-UJI and FAIR-Checker: Automated FAIR Data Assessment Tools
+2020
+F-UJI and FAIR-Checker are automated tools that operationalize FAIR principles for data and metadata evaluation. They test digital resources against Findable, Accessible, Interoperable, and Reusable criteria and provide compliance scoring and actionable improvement recommendations.
+Enable reproducible, objective, and automated FAIRness assessment for datasets and knowledge graphs.
+Rule-based and API-driven automated FAIR metric evaluation. Includes data harvesting, metadata inspection, and API validation.
+FAIR-Checker API; F-UJI Web Service
+FAIR Assessment Tools
+Quantitative FAIRness scoring and compliance benchmarking
+Automates FAIR compliance checks; improves interoperability and transparency; provides concrete, machine-actionable feedback for repository improvement.
+Limited to FAIR dimensions; may not capture semantic richness or structural ontology quality directly.
+Findability, Accessibility, Interoperability, Reusability, Metadata Objectivity.
+Read
+28
+ISO/IEC 25024 & ISO 8000: Data Quality Measurement and Metadata Standards
+2015
+ISO/IEC 25024 extends ISO 25012 by defining formal methods for measuring data quality, while ISO 8000 introduces standardized data governance and master data management guidelines.
+Define measurable and auditable data quality and metadata quality metrics beyond conceptual modeling.
+International standardization process defining attributes, measures, and compliance verification for data quality evaluation.
+ISO/IEC 25024 Measurement Model; ISO 8000 MDM Framework
+Data Quality Measurement Standards
+Used in enterprise-level DQ audits; compliance benchmarked via quantifiable characteristics
+Provide measurable, auditable quality control; complement KG governance frameworks with enterprise-grade validation.
+Not graph-specific; limited integration with semantic web and RDF-based KGs without mapping extensions.
+Accuracy, Completeness, Consistency, Timeliness, Security, Compliance, Traceability.
+Read
+
+
+
