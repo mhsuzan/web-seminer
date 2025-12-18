@@ -58,7 +58,9 @@ For the domain `seminer.codinzy.com` to work, ensure:
    ```bash
    cd /root/seminer
    source venv/bin/activate
-   python manage.py import_docx "path/to/your/document.docx"
+   python manage.py import_document "path/to/your/document.docx"
+   # Or for PDF files:
+   python manage.py import_document "path/to/your/document.pdf"
    ```
 
 2. **Create Admin User** (optional):
