@@ -29,16 +29,27 @@
             <thead>
                 <tr>
                     <th>Framework</th>
-                    <th>Category</th>
+                    <th>Dimensions/Criteria</th>
+                    {# Category column hidden #}
                     <th>Description</th>
                     <th>Definitions</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for fw_data in result.frameworks %}
                 <tr>
                     <td><strong>{{ fw_data.framework.name }}</strong></td>
-                    <td>{{ fw_data.category|default:"—" }}</td>
+                    <td>
+                        {% if fw_data.criteria_keywords %}
+                            <span title="{{ fw_data.criteria_keywords }}" style="font-size: 0.9rem; color: #666;">
+                                {{ fw_data.criteria_keywords|truncatewords:15 }}
+                            </span>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    {# Category column hidden #}
                     <td>{{ fw_data.description|truncatewords:20|default:"—" }}</td>
                     <td>
                         {% if fw_data.definitions %}
@@ -50,6 +61,11 @@
                         {% else %}
                             —
                         {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'frameworks:framework_detail' framework_id=fw_data.framework.id %}" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; text-decoration: none; display: inline-block;">
+                            View Framework
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}

@@ -118,6 +118,9 @@ class Command(BaseCommand):
         """Parse DOCX document to extract framework data"""
         frameworks_data = []
         
+        # Store document reference for hyperlink extraction
+        self.doc = doc
+        
         # Parse tables first (more reliable for structured data)
         # This document uses tables, so we prioritize table parsing
         for table in doc.tables:
@@ -379,6 +382,103 @@ class Command(BaseCommand):
         
         return frameworks_data
 
+    def extract_hyperlinks_from_cell(self, cell):
+        """
+        Extract hyperlinks from a DOCX cell.
+        Returns a tuple: (text, url) where url is the first hyperlink found, or None if no hyperlink.
+        """
+        text = cell.text.strip()
+        url = None
+        
+        try:
+            # Get the document part for accessing relationships
+            doc_part = None
+            if hasattr(self, 'doc') and hasattr(self.doc, 'part'):
+                doc_part = self.doc.part
+            
+            # Iterate through paragraphs - hyperlinks are often at paragraph level
+            for paragraph in cell.paragraphs:
+                part = paragraph.part if hasattr(paragraph, 'part') else doc_part
+                if not part:
+                    continue
+                
+                # Check paragraph element for hyperlink children
+                para_elem = paragraph._element
+                for child in para_elem:
+                    # Check if this child is a hyperlink element
+                    if child.tag and 'hyperlink' in child.tag:
+                        # Get relationship ID (rId) - this is for external links
+                        r_id = child.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id')
+                        if r_id and part and hasattr(part, 'rels'):
+                            try:
+                                rel = part.rels.get(r_id)
+                                if rel:
+                                    # Get the target URL - try different attribute names
+                                    if hasattr(rel, 'target_ref'):
+                                        url = rel.target_ref
+                                    elif hasattr(rel, '_target'):
+                                        url = str(rel._target)
+                                    elif hasattr(rel, 'target_uri'):
+                                        url = str(rel.target_uri)
+                                    elif hasattr(rel, 'target'):
+                                        url = str(rel.target)
+                                    
+                                    # If we found a URL, return it immediately
+                                    if url:
+                                        return (text, url)
+                            except Exception as e:
+                                # Continue trying other methods
+                                pass
+                
+                # Also check runs for hyperlinks (some documents might have them nested differently)
+                for run in paragraph.runs:
+                    run_elem = run._element
+                    
+                    # Look for hyperlink elements in the run (recursively)
+                    def find_hyperlinks(elem):
+                        """Recursively find hyperlink elements"""
+                        hyperlinks = []
+                        # Check if this element is a hyperlink
+                        if elem.tag and 'hyperlink' in elem.tag:
+                            hyperlinks.append(elem)
+                        # Check children
+                        for child in elem:
+                            hyperlinks.extend(find_hyperlinks(child))
+                        return hyperlinks
+                    
+                    hyperlinks = find_hyperlinks(run_elem)
+                    
+                    for hyperlink in hyperlinks:
+                        # Check for relationship ID (rId) - this is for external links
+                        r_id = hyperlink.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id')
+                        if r_id and part and hasattr(part, 'rels'):
+                            try:
+                                rel = part.rels.get(r_id)
+                                if rel:
+                                    # Get the target URL - try different attribute names
+                                    if hasattr(rel, 'target_ref'):
+                                        url = rel.target_ref
+                                    elif hasattr(rel, '_target'):
+                                        url = str(rel._target)
+                                    elif hasattr(rel, 'target_uri'):
+                                        url = str(rel.target_uri)
+                                    elif hasattr(rel, 'target'):
+                                        url = str(rel.target)
+                                    
+                                    # If we found a URL, return it immediately
+                                    if url:
+                                        return (text, url)
+                            except Exception as e:
+                                # Continue trying other methods
+                                pass
+                        
+        except Exception as e:
+            # If hyperlink extraction fails, just return the text
+            # This is a fallback to ensure the import doesn't break
+            pass
+        
+        return (text, url)
+    
     def parse_table(self, table):
         """Parse DOCX table to extract framework data"""
         frameworks_data = []
@@ -432,6 +532,7 @@ class Command(BaseCommand):
         
         # Parse each data row
         for row in table.rows[1:]:  # Skip header
+            # Extract text from all cells first
             cells = [cell.text.strip() for cell in row.cells]
             
             # Extract framework information
@@ -446,10 +547,41 @@ class Command(BaseCommand):
             accuracy = cells[accuracy_col] if accuracy_col is not None and accuracy_col < len(cells) else ''
             advantages = cells[advantages_col] if advantages_col is not None and advantages_col < len(cells) else ''
             drawbacks = cells[drawbacks_col] if drawbacks_col is not None and drawbacks_col < len(cells) else ''
-            reference = cells[reference_col] if reference_col is not None and reference_col < len(cells) else ''
+            
+            # Extract reference with hyperlink support
+            reference = ''
+            if reference_col is not None and reference_col < len(row.cells):
+                ref_cell = row.cells[reference_col]
+                ref_text, ref_url = self.extract_hyperlinks_from_cell(ref_cell)
+                
+                # Combine text and URL appropriately
+                if ref_url:
+                    # If we have a URL, use it (prefer URL over text if text is just "Read" or similar)
+                    if ref_text.lower() in ['read', 'link', 'url', 'source']:
+                        reference = ref_url
+                    else:
+                        # If text is meaningful, combine them: "text (URL)" or just URL if text is empty
+                        if ref_text and ref_text.strip():
+                            combined = f"{ref_text} ({ref_url})"
+                            # Ensure we don't exceed the 500 character limit for the source field
+                            if len(combined) > 500:
+                                # If combined is too long, prefer the URL
+                                reference = ref_url[:500]
+                            else:
+                                reference = combined
+                        else:
+                            reference = ref_url[:500]  # Truncate if needed
+                else:
+                    # No hyperlink found, just use the text
+                    reference = ref_text[:500] if ref_text else ''  # Truncate if needed
             
             # Skip if title is too short or looks like a document header
-            if not title or len(title) < 10 or title.lower().startswith(('comprehensive', 'the following', 'table present', 'the')):
+            if not title or len(title) < 5:
+                continue
+            
+            # Skip document headers
+            title_lower = title.lower()
+            if any(title_lower.startswith(prefix) for prefix in ('comprehensive', 'the following', 'table present', 'table ', 'figure ', 'page ')):
                 continue
             
             # Extract year
@@ -511,19 +643,19 @@ class Command(BaseCommand):
                 # Join words that might have been split: "Syntactic Validity", "Semantic Accuracy", etc.
                 dimensions_normalized = re.sub(r'\b(Syntactic|Semantic|Representational)\s+([A-Z][a-z]+)', r'\1 \2', dimensions_normalized)
                 
-                # Split by comma or semicolon
-                dim_list = re.split(r'[,;]+', dimensions_normalized)
+                # Split by comma, semicolon, or newline
+                dim_list = re.split(r'[,;\n]+', dimensions_normalized)
                 
                 seen_dimensions = set()  # Avoid duplicates
                 
                 for dim in dim_list:
                     dim = dim.strip()
                     # Filter out very short strings and common non-dimension words
-                    if dim and len(dim) > 2 and dim.lower() not in ['n/a', 'na', 'read', 'and', 'or', 'the']:
+                    if dim and len(dim) > 2 and dim.lower() not in ['n/a', 'na', 'read', 'and', 'or', 'the', 'none', 'null']:
                         # Clean up common prefixes that might be split across lines
                         dim = re.sub(r'^(Syntactic|Semantic|Representational)[\s-]+', '', dim, flags=re.IGNORECASE)
-                        # Remove trailing periods and dashes
-                        dim = dim.rstrip('.-').strip()
+                        # Remove trailing periods, dashes, and parentheses
+                        dim = dim.rstrip('.-()[]').strip()
                         
                         # Skip if it's just a single letter, number, or common words
                         if dim and len(dim) > 2 and not re.match(r'^[\d\s]+$', dim):
@@ -534,11 +666,16 @@ class Command(BaseCommand):
                             dim_lower = dim.lower()
                             if dim_lower not in seen_dimensions:
                                 seen_dimensions.add(dim_lower)
+                                # Use abstract or description if available for better definition
+                                definition_text = abstract if abstract else f"Quality dimension from {title}"
+                                if year:
+                                    definition_text += f" ({year})"
+                                
                                 criteria.append({
                                     'name': dim,
-                                    'description': f"Quality dimension from {title}",
+                                    'description': definition_text,
                                     'category': '',
-                                    'definitions': [f"Quality dimension from {title} ({year})"] if year else [f"Quality dimension from {title}"],
+                                    'definitions': [definition_text],
                                 })
             
             # Create framework entry
@@ -563,71 +700,254 @@ class Command(BaseCommand):
         
         return frameworks_data
 
+    def normalize_name(self, name):
+        """Normalize a name for comparison (lowercase, strip, remove extra spaces)"""
+        if not name:
+            return ''
+        return ' '.join(name.lower().strip().split())
+    
+    def find_matching_framework(self, fw_data):
+        """Find existing framework by normalized name, year, or title"""
+        name = fw_data.get('name', '').strip()
+        year = fw_data.get('year')
+        title = fw_data.get('title', '').strip()
+        
+        # Try exact name match first
+        framework = Framework.objects.filter(name=name).first()
+        if framework:
+            return framework
+        
+        # Try normalized name match
+        normalized_name = self.normalize_name(name)
+        if normalized_name:
+            for fw in Framework.objects.all():
+                if self.normalize_name(fw.name) == normalized_name:
+                    return fw
+        
+        # Try matching by year and title (if both exist)
+        if year and title:
+            framework = Framework.objects.filter(year=year, title=title).first()
+            if framework:
+                return framework
+        
+        # Try matching by year and normalized title
+        if year and title:
+            normalized_title = self.normalize_name(title)
+            for fw in Framework.objects.filter(year=year):
+                if self.normalize_name(fw.title) == normalized_title:
+                    return fw
+        
+        return None
+    
+    def merge_framework_data(self, framework, fw_data):
+        """Merge new data into existing framework, keeping existing data if new is empty"""
+        updated = False
+        
+        # Only update if new data is not empty and different
+        if fw_data.get('authors') and fw_data['authors'].strip() and (not framework.authors or framework.authors.strip() != fw_data['authors'].strip()):
+            framework.authors = fw_data['authors'].strip()
+            updated = True
+        
+        if fw_data.get('year') and framework.year != fw_data['year']:
+            framework.year = fw_data['year']
+            updated = True
+        
+        if fw_data.get('title') and fw_data['title'].strip() and (not framework.title or framework.title.strip() != fw_data['title'].strip()):
+            framework.title = fw_data['title'].strip()
+            updated = True
+        
+        if fw_data.get('description') and fw_data['description'].strip() and (not framework.description or len(fw_data['description'].strip()) > len(framework.description.strip())):
+            framework.description = fw_data['description'].strip()
+            updated = True
+        
+        if fw_data.get('objectives') and fw_data['objectives'].strip() and (not framework.objectives or len(fw_data['objectives'].strip()) > len(framework.objectives.strip())):
+            framework.objectives = fw_data['objectives'].strip()
+            updated = True
+        
+        if fw_data.get('methodology') and fw_data['methodology'].strip() and (not framework.methodology or len(fw_data['methodology'].strip()) > len(framework.methodology.strip())):
+            framework.methodology = fw_data['methodology'].strip()
+            updated = True
+        
+        if fw_data.get('algorithm_used') and fw_data['algorithm_used'].strip() and (not framework.algorithm_used or framework.algorithm_used.strip() != fw_data['algorithm_used'].strip()):
+            framework.algorithm_used = fw_data['algorithm_used'].strip()
+            updated = True
+        
+        if fw_data.get('top_model') and fw_data['top_model'].strip() and (not framework.top_model or framework.top_model.strip() != fw_data['top_model'].strip()):
+            framework.top_model = fw_data['top_model'].strip()
+            updated = True
+        
+        if fw_data.get('accuracy') and fw_data['accuracy'].strip() and (not framework.accuracy or framework.accuracy.strip() != fw_data['accuracy'].strip()):
+            framework.accuracy = fw_data['accuracy'].strip()
+            updated = True
+        
+        if fw_data.get('advantages') and fw_data['advantages'].strip() and (not framework.advantages or len(fw_data['advantages'].strip()) > len(framework.advantages.strip())):
+            framework.advantages = fw_data['advantages'].strip()
+            updated = True
+        
+        if fw_data.get('drawbacks') and fw_data['drawbacks'].strip() and (not framework.drawbacks or len(fw_data['drawbacks'].strip()) > len(framework.drawbacks.strip())):
+            framework.drawbacks = fw_data['drawbacks'].strip()
+            updated = True
+        
+        if fw_data.get('source') and fw_data['source'].strip():
+            new_source = fw_data['source'].strip()
+            current_source = framework.source.strip() if framework.source else ''
+            
+            # Prefer URLs over plain text like "Read"
+            # If new source looks like a URL and current doesn't, update
+            is_url = new_source.startswith(('http://', 'https://', 'www.'))
+            current_is_url = current_source.startswith(('http://', 'https://', 'www.'))
+            
+            # Update if:
+            # 1. Current source is empty, OR
+            # 2. New source is a URL and current is not, OR
+            # 3. New source is different (and both are same type or new is better)
+            should_update = (not current_source or 
+                           (is_url and not current_is_url) or
+                           (new_source != current_source and not (current_is_url and not is_url)))
+            
+            if should_update:
+                framework.source = new_source
+                updated = True
+        
+        if updated:
+            framework.save()
+        
+        return updated
+    
+    def normalize_criterion_name(self, name):
+        """Normalize criterion name for comparison"""
+        if not name:
+            return ''
+        # Remove extra whitespace, normalize case
+        normalized = ' '.join(name.strip().split())
+        # Capitalize first letter
+        if normalized:
+            normalized = normalized[0].upper() + normalized[1:] if len(normalized) > 1 else normalized.upper()
+        return normalized
+    
+    def find_matching_criterion(self, framework, criterion_name):
+        """Find existing criterion by normalized name"""
+        normalized_name = self.normalize_criterion_name(criterion_name)
+        if not normalized_name:
+            return None
+        
+        # Try exact match first
+        criterion = Criterion.objects.filter(framework=framework, name=criterion_name).first()
+        if criterion:
+            return criterion
+        
+        # Try normalized match
+        for crit in Criterion.objects.filter(framework=framework):
+            if self.normalize_criterion_name(crit.name) == normalized_name:
+                return crit
+        
+        return None
+    
     def import_frameworks(self, frameworks_data):
-        """Import frameworks data into the database"""
+        """Import frameworks data into the database with duplicate detection"""
         imported_count = 0
+        updated_count = 0
         
         for fw_data in frameworks_data:
-            # Create or get framework
-            framework, created = Framework.objects.get_or_create(
-                name=fw_data['name'],
-                defaults={
-                    'authors': fw_data.get('authors', ''),
-                    'year': fw_data.get('year'),
-                    'title': fw_data.get('title', ''),
-                    'description': fw_data.get('description', ''),
-                    'objectives': fw_data.get('objectives', ''),
-                    'methodology': fw_data.get('methodology', ''),
-                    'algorithm_used': fw_data.get('algorithm_used', ''),
-                    'top_model': fw_data.get('top_model', ''),
-                    'accuracy': fw_data.get('accuracy', ''),
-                    'advantages': fw_data.get('advantages', ''),
-                    'drawbacks': fw_data.get('drawbacks', ''),
-                    'source': fw_data.get('source', ''),
-                }
-            )
+            # Normalize framework name
+            fw_data['name'] = fw_data.get('name', '').strip()
+            if not fw_data['name']:
+                self.stdout.write(self.style.WARNING('Skipping framework with empty name'))
+                continue
             
-            # Update existing framework if it was already there
-            if not created:
-                framework.authors = fw_data.get('authors', '')
-                framework.year = fw_data.get('year')
-                framework.title = fw_data.get('title', '')
-                framework.description = fw_data.get('description', '')
-                framework.objectives = fw_data.get('objectives', '')
-                framework.methodology = fw_data.get('methodology', '')
-                framework.algorithm_used = fw_data.get('algorithm_used', '')
-                framework.top_model = fw_data.get('top_model', '')
-                framework.accuracy = fw_data.get('accuracy', '')
-                framework.advantages = fw_data.get('advantages', '')
-                framework.drawbacks = fw_data.get('drawbacks', '')
-                framework.source = fw_data.get('source', '')
-                framework.save()
+            # Try to find existing framework
+            framework = self.find_matching_framework(fw_data)
             
-            if created:
+            if framework:
+                # Update existing framework
+                was_updated = self.merge_framework_data(framework, fw_data)
+                if was_updated:
+                    updated_count += 1
+                    self.stdout.write(f'Updated framework: {framework.name}')
+            else:
+                # Create new framework
+                framework = Framework.objects.create(
+                    name=fw_data['name'],
+                    authors=fw_data.get('authors', '').strip(),
+                    year=fw_data.get('year'),
+                    title=fw_data.get('title', '').strip(),
+                    description=fw_data.get('description', '').strip(),
+                    objectives=fw_data.get('objectives', '').strip(),
+                    methodology=fw_data.get('methodology', '').strip(),
+                    algorithm_used=fw_data.get('algorithm_used', '').strip(),
+                    top_model=fw_data.get('top_model', '').strip(),
+                    accuracy=fw_data.get('accuracy', '').strip(),
+                    advantages=fw_data.get('advantages', '').strip(),
+                    drawbacks=fw_data.get('drawbacks', '').strip(),
+                    source=fw_data.get('source', '').strip(),
+                )
                 imported_count += 1
                 self.stdout.write(f'Created framework: {framework.name}')
             
-            # Import criteria
+            # Import criteria with duplicate detection
             for idx, criterion_data in enumerate(fw_data.get('criteria', [])):
-                criterion, _ = Criterion.objects.get_or_create(
-                    framework=framework,
-                    name=criterion_data['name'],
-                    defaults={
-                        'description': criterion_data.get('description', ''),
-                        'category': criterion_data.get('category', ''),
-                        'order': idx,
-                    }
-                )
+                criterion_name = criterion_data.get('name', '').strip()
+                if not criterion_name:
+                    continue
                 
-                # Import definitions
+                # Normalize criterion name
+                normalized_name = self.normalize_criterion_name(criterion_name)
+                
+                # Try to find existing criterion
+                criterion = self.find_matching_criterion(framework, criterion_name)
+                
+                if criterion:
+                    # Update existing criterion if new data is better
+                    if criterion_data.get('description') and criterion_data['description'].strip():
+                        if not criterion.description or len(criterion_data['description'].strip()) > len(criterion.description.strip()):
+                            criterion.description = criterion_data['description'].strip()
+                            criterion.save()
+                    if criterion_data.get('category') and criterion_data['category'].strip():
+                        if not criterion.category or criterion.category.strip() != criterion_data['category'].strip():
+                            criterion.category = criterion_data['category'].strip()
+                            criterion.save()
+                else:
+                    # Create new criterion
+                    criterion = Criterion.objects.create(
+                        framework=framework,
+                        name=normalized_name,
+                        description=criterion_data.get('description', '').strip(),
+                        category=criterion_data.get('category', '').strip(),
+                        order=idx,
+                    )
+                
+                # Import definitions with duplicate detection
                 for definition_text in criterion_data.get('definitions', []):
-                    if definition_text.strip():
-                        Definition.objects.get_or_create(
-                            criterion=criterion,
-                            definition_text=definition_text.strip(),
-                            defaults={
-                                'notes': '',
-                            }
-                        )
+                    definition_text = definition_text.strip()
+                    if not definition_text:
+                        continue
+                    
+                    # Check if similar definition already exists (normalized comparison)
+                    normalized_def = self.normalize_name(definition_text)
+                    existing_def = None
+                    
+                    for def_obj in criterion.definitions.all():
+                        if self.normalize_name(def_obj.definition_text) == normalized_def:
+                            existing_def = def_obj
+                            break
+                    
+                    if not existing_def:
+                        # Only create if significantly different (avoid near-duplicates)
+                        is_duplicate = False
+                        for def_obj in criterion.definitions.all():
+                            existing_normalized = self.normalize_name(def_obj.definition_text)
+                            # Check if one is a substring of the other (likely duplicate)
+                            if normalized_def in existing_normalized or existing_normalized in normalized_def:
+                                if abs(len(normalized_def) - len(existing_normalized)) < 20:  # Similar length
+                                    is_duplicate = True
+                                    break
+                        
+                        if not is_duplicate:
+                            Definition.objects.create(
+                                criterion=criterion,
+                                definition_text=definition_text,
+                                notes='',
+                            )
         
+        self.stdout.write(self.style.SUCCESS(f'Imported {imported_count} new frameworks, updated {updated_count} existing frameworks'))
         return imported_count

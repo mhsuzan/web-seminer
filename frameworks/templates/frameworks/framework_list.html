@@ -10,9 +10,10 @@
     <table>
         <thead>
             <tr>
-                <th>Framework</th>
-                <th>Authors</th>
+                <th>Framework Name</th>
+                {# Authors column hidden #}
                 <th>Year</th>
+                <th>Dimensions/Criteria</th>
                 <th>Criteria Count</th>
                 <th>Actions</th>
             </tr>
@@ -21,10 +22,20 @@
             {% for framework in frameworks %}
             <tr>
                 <td><strong>{{ framework.name }}</strong></td>
-                <td>{{ framework.authors|truncatewords:5 }}</td>
+                {# Authors column hidden #}
                 <td>{{ framework.year|default:"—" }}</td>
+                <td>
+                    {% if framework.criteria_names_display %}
+                        <span title="{{ framework.criteria_names_display }}">{{ framework.criteria_names_display|truncatewords:20 }}</span>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
                 <td>{{ framework.criteria_count }}</td>
-                <td><a href="{% url 'frameworks:framework_detail' framework.id %}" class="btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">View Details</a></td>
+                <td>
+                    <a href="{% url 'frameworks:framework_detail' framework.id %}" class="btn" style="padding: 0.5rem 1rem; font-size: 0.9rem; margin-right: 0.5rem;">View Details</a>
+                    <button class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openEditModal({{ framework.id }})">Edit</button>
+                </td>
             </tr>
             {% empty %}
             <tr>
@@ -36,4 +47,234 @@
         </tbody>
     </table>
 </div>
+
+<!-- Edit Framework Modal -->
+<div id="editModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2>Edit Framework</h2>
+            <span class="close" onclick="closeEditModal()" style="font-size: 2rem; cursor: pointer; color: #999;">&times;</span>
+        </div>
+        <form id="editFrameworkForm" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="framework_id" id="framework_id">
+            
+            <div class="form-group">
+                <label for="name">Framework Name *</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            
+            {# Authors field hidden #}
+            
+            <div class="form-group">
+                <label for="year">Year</label>
+                <input type="number" class="form-control" id="year" name="year" min="1900" max="2100">
+            </div>
+            
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" class="form-control" id="title" name="title">
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Abstract/Description</label>
+                <textarea class="form-control" id="description" name="description" rows="4"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="objectives">Objectives</label>
+                <textarea class="form-control" id="objectives" name="objectives" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="methodology">Methodology</label>
+                <textarea class="form-control" id="methodology" name="methodology" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="algorithm_used">Algorithm Used</label>
+                <input type="text" class="form-control" id="algorithm_used" name="algorithm_used">
+            </div>
+            
+            <div class="form-group">
+                <label for="top_model">Top Model</label>
+                <input type="text" class="form-control" id="top_model" name="top_model">
+            </div>
+            
+            <div class="form-group">
+                <label for="accuracy">Accuracy</label>
+                <input type="text" class="form-control" id="accuracy" name="accuracy">
+            </div>
+            
+            <div class="form-group">
+                <label for="advantages">Advantages</label>
+                <textarea class="form-control" id="advantages" name="advantages" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="drawbacks">Drawbacks</label>
+                <textarea class="form-control" id="drawbacks" name="drawbacks" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="source">Source</label>
+                <input type="text" class="form-control" id="source" name="source">
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+    }
+    
+    .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        animation: modalSlideIn 0.3s ease;
+    }
+    
+    @keyframes modalSlideIn {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    .close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.3s;
+    }
+    
+    .close:hover {
+        color: #000;
+    }
+</style>
+
+<script>
+    function openEditModal(frameworkId) {
+        const modal = document.getElementById('editModal');
+        const form = document.getElementById('editFrameworkForm');
+        
+        // Show modal
+        modal.style.display = 'block';
+        
+        // Reset form
+        form.reset();
+        document.getElementById('framework_id').value = frameworkId;
+        
+        // Load framework data via AJAX
+        fetch(`/frameworks/${frameworkId}/edit/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Populate form fields with current data
+            document.getElementById('name').value = data.name || '';
+            // Authors field hidden
+            document.getElementById('year').value = data.year || '';
+            document.getElementById('title').value = data.title || '';
+            document.getElementById('description').value = data.description || '';
+            document.getElementById('objectives').value = data.objectives || '';
+            document.getElementById('methodology').value = data.methodology || '';
+            document.getElementById('algorithm_used').value = data.algorithm_used || '';
+            document.getElementById('top_model').value = data.top_model || '';
+            document.getElementById('accuracy').value = data.accuracy || '';
+            document.getElementById('advantages').value = data.advantages || '';
+            document.getElementById('drawbacks').value = data.drawbacks || '';
+            document.getElementById('source').value = data.source || '';
+        })
+        .catch(error => {
+            console.error('Error loading framework data:', error);
+            alert('Error loading framework data. Please refresh the page and try again.');
+        });
+    }
+    
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+    
+    // Close modal when clicking outside of it
+    window.onclick = function(event) {
+        const modal = document.getElementById('editModal');
+        if (event.target == modal) {
+            closeEditModal();
+        }
+    }
+    
+    // Handle form submission
+    document.getElementById('editFrameworkForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const form = this;
+        const frameworkId = document.getElementById('framework_id').value;
+        const formData = new FormData(form);
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(`/frameworks/${frameworkId}/edit/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken,
+            },
+            body: formData,
+        })
+        .then(response => {
+            // Check if response is OK
+            if (!response.ok) {
+                // Try to parse JSON error response
+                return response.json().then(data => {
+                    throw new Error(data.message || `Server error: ${response.status}`);
+                }).catch(() => {
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                alert('Framework updated successfully!');
+                closeEditModal();
+                // Reload the page to show updated data
+                window.location.reload();
+            } else {
+                alert('Error updating framework: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error updating framework:', error);
+            alert('Error updating framework: ' + (error.message || 'Please try again.'));
+        });
+    });
+</script>
 {% endblock %}

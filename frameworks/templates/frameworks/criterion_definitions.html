@@ -27,7 +27,7 @@
         <thead>
             <tr>
                 <th>Framework</th>
-                <th>Category</th>
+                {# Category column hidden #}
                 <th>Definition</th>
                 <th>Notes</th>
             </tr>
@@ -36,7 +36,7 @@
             {% for def in definitions %}
             <tr>
                 <td><strong>{{ def.framework.name }}</strong><br><small style="color: #666;">{{ def.framework.year|default:"" }}</small></td>
-                <td>{{ def.category|default:"—" }}</td>
+                {# Category column hidden #}
                 <td>{{ def.definition }}</td>
                 <td>{{ def.notes|default:"—" }}</td>
             </tr>

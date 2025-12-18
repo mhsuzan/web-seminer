@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,8 +26,15 @@ SECRET_KEY = 'django-insecure-d@5h!y!2s)c-ncf7@n!ru_fwrt$+=o@8^qo$lsi!56-^k3usbn
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['seminer.codinzy.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['seminer.codinzy.com', 'localhost', '127.0.0.1', '172.18.0.1', '172.18.0.10']
 
+# CSRF trusted origins for HTTPS
+CSRF_TRUSTED_ORIGINS = [
+    'https://seminer.codinzy.com',
+    'http://seminer.codinzy.com',
+    'http://localhost:8002',
+    'http://127.0.0.1:8002',
+]
 
 # Application definition
 
@@ -117,3 +125,54 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Hugging Face API Key (for LLM enhancement)
+# Set via environment variable: export HUGGINGFACE_API_KEY="your-key-here"
+# Or uncomment and set below (NOT RECOMMENDED for production):
+# HUGGINGFACE_API_KEY = "your-key-here"
+HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY', None)
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'root': {
+        'handlers': ['file', 'console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'frameworks': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}

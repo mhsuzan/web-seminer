@@ -1,0 +1,93 @@
+{% extends 'frameworks/base.html' %}
+
+{% block title %}{{ source_name }} - Source Detail{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <div>
+        <h2>{{ source_name }}</h2>
+        <p style="color: var(--text-light); margin-top: 0.5rem;">{{ frameworks.count }} framework{{ frameworks.count|pluralize }} with this source</p>
+    </div>
+    <a href="{% url 'frameworks:source_list' %}" class="btn btn-secondary">← Back to Sources</a>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 1.5rem;">Frameworks with this Source</h3>
+    
+    {% if frameworks %}
+    <form method="post" id="bulkForm">
+        {% csrf_token %}
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40px;">
+                        <input type="checkbox" id="selectAll" onchange="toggleAll(this)">
+                    </th>
+                    <th>Framework</th>
+                    {# Authors column hidden #}
+                    <th>Year</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for framework in frameworks %}
+                <tr>
+                    <td>
+                        <input type="checkbox" name="framework_ids" value="{{ framework.id }}" class="framework-checkbox">
+                    </td>
+                    <td><strong>{{ framework.name }}</strong></td>
+                    {# Authors column hidden #}
+                    <td>{{ framework.year|default:"—" }}</td>
+                    <td>
+                        <a href="{% url 'frameworks:framework_detail' framework.id %}" class="btn btn-sm">View</a>
+                        <a href="{% url 'frameworks:source_edit_framework' framework.id %}" class="btn btn-sm" style="background: var(--text-light);">Edit Source</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 2rem; padding: 1.5rem; background: var(--bg-light); border-radius: 8px;">
+            <h4 style="margin-bottom: 1rem;">Bulk Update Selected Frameworks</h4>
+            <div style="display: flex; gap: 1rem; align-items: end;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label>New Source Name</label>
+                    <input type="text" name="new_source" class="form-control" placeholder="Enter new source name">
+                </div>
+                <button type="submit" class="btn">Update Selected</button>
+            </div>
+            <p style="font-size: 0.875rem; color: var(--text-light); margin-top: 0.5rem;">
+                Select frameworks above and enter a new source name to update them all at once.
+            </p>
+        </div>
+    </form>
+    {% else %}
+    <div style="text-align: center; padding: 2rem;">
+        <p style="color: var(--text-light);">No frameworks found with this source.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.framework-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+}
+
+document.getElementById('bulkForm').addEventListener('submit', function(e) {
+    const checked = document.querySelectorAll('.framework-checkbox:checked');
+    if (checked.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one framework to update.');
+        return false;
+    }
+    const newSource = document.querySelector('input[name="new_source"]').value.trim();
+    if (!newSource) {
+        e.preventDefault();
+        alert('Please enter a new source name.');
+        return false;
+    }
+    return confirm(`Update source for ${checked.length} framework(s)?`);
+});
+</script>
+{% endblock %}

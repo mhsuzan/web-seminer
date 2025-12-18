@@ -1,0 +1,90 @@
+{% extends 'frameworks/base.html' %}
+
+{% block title %}Sources - KG Quality Frameworks{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Data Sources</h2>
+    <p style="color: var(--text-light); margin-bottom: 2rem;">
+        Manage and edit sources for frameworks. Sources are the publication venues or references where frameworks were published.
+    </p>
+    
+    {% if stats %}
+    <div class="grid grid-3" style="margin-bottom: 2rem;">
+        <div class="stats-card">
+            <h3>{{ stats.total_sources }}</h3>
+            <p>Unique Sources</p>
+        </div>
+        <div class="stats-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <h3>{{ stats.total_frameworks }}</h3>
+            <p>Frameworks with Sources</p>
+        </div>
+        <div class="stats-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <h3>{{ stats.frameworks_without_source }}</h3>
+            <p>Without Source</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Search -->
+    <div class="card" style="background: var(--bg-light); padding: 1.5rem; margin-bottom: 2rem;">
+        <form method="get" style="display: flex; gap: 1rem; align-items: end;">
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                <label>Search Sources</label>
+                <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search by source name...">
+            </div>
+            <button type="submit" class="btn">Search</button>
+            {% if search_query %}
+            <a href="{% url 'frameworks:source_list' %}" class="btn btn-secondary">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+    
+    <!-- Sources List -->
+    {% if sources_data %}
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem;">All Sources ({{ sources_data|length }})</h3>
+        <div class="grid grid-2">
+            {% for source_info in sources_data %}
+            <div class="card" style="padding: 1.5rem; cursor: pointer; transition: all 0.3s ease;" onclick="window.location.href='{% url 'frameworks:source_detail' %}?source={{ source_info.name|urlencode }}'">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                    <h4 style="margin: 0; font-size: 1.125rem; color: var(--text-dark); flex: 1;">{{ source_info.name }}</h4>
+                    <span class="badge badge-primary" style="margin-left: 1rem;">{{ source_info.count }} framework{{ source_info.count|pluralize }}</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    {% for framework in source_info.frameworks|slice:":3 %}
+                    <span style="font-size: 0.875rem; color: var(--text-light); background: var(--bg-light); padding: 0.25rem 0.75rem; border-radius: 4px;">
+                        {{ framework.name|truncatewords:3 }}
+                    </span>
+                    {% endfor %}
+                    {% if source_info.count > 3 %}
+                    <span style="font-size: 0.875rem; color: var(--text-light);">
+                        +{{ source_info.count|add:"-3" }} more
+                    </span>
+                    {% endif %}
+                </div>
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                    <a href="{% url 'frameworks:source_detail' %}?source={{ source_info.name|urlencode }}" class="btn btn-sm" style="width: 100%; text-align: center;">View & Edit</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="card" style="text-align: center; padding: 3rem;">
+        <p style="color: var(--text-light); font-size: 1.125rem; margin-bottom: 1rem;">
+            {% if search_query %}
+            No sources found matching "{{ search_query }}".
+            {% else %}
+            No sources found. Add sources to frameworks to get started.
+            {% endif %}
+        </p>
+        {% if search_query %}
+        <a href="{% url 'frameworks:source_list' %}" class="btn">Clear Search</a>
+        {% else %}
+        <a href="{% url 'frameworks:framework_list' %}" class="btn">View Frameworks</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

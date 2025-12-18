@@ -1,0 +1,51 @@
+{% extends 'frameworks/base.html' %}
+
+{% block title %}Edit Source - {{ framework.name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Edit Source for Framework</h2>
+    <a href="{% url 'frameworks:framework_detail' framework.id %}" class="btn btn-secondary">← Back to Framework</a>
+</div>
+
+<div class="card">
+    <div style="margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 0.5rem;">{{ framework.name }}</h3>
+        <p style="color: var(--text-light);">
+            {% if framework.year %}({{ framework.year }}){% endif %}
+            {# Authors hidden #}
+        </p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="source">Source / Publication Venue</label>
+            <input type="text" 
+                   id="source" 
+                   name="source" 
+                   value="{{ framework.source }}" 
+                   class="form-control" 
+                   placeholder="e.g., ACM SIGMOD, IEEE Transactions, etc."
+                   maxlength="500">
+            <p style="font-size: 0.875rem; color: var(--text-light); margin-top: 0.5rem;">
+                Enter the publication venue, journal, conference, or reference where this framework was published.
+            </p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn">Save Source</button>
+            <a href="{% url 'frameworks:framework_detail' framework.id %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+    
+    {% if framework.source %}
+    <div style="margin-top: 2rem; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+        <p style="margin-bottom: 0.5rem; font-weight: 600;">View other frameworks with this source:</p>
+        <a href="{% url 'frameworks:source_detail' %}?source={{ framework.source|urlencode }}" class="btn btn-sm">
+            View {{ framework.source }}
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

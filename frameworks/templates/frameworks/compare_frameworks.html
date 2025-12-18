@@ -78,12 +78,7 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Authors</td>
-                    {% for fw_detail in framework_details %}
-                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.authors|default:"—" }}</td>
-                    {% endfor %}
-                </tr>
+                {# Authors column hidden #}
                 <tr>
                     <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Year</td>
                     {% for fw_detail in framework_details %}
@@ -164,10 +159,93 @@
 </div>
 
 <div class="card">
-    <h3>Criteria Comparison</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="margin: 0;">Criteria Comparison</h3>
+        {% if selected_frameworks and comparison_data %}
+        <div>
+            {% if llm_enhancement and llm_enhancement.enhanced %}
+                <span class="badge badge-success" style="margin-right: 0.5rem;">
+                    🤖 AI Enhanced ({{ llm_enhancement.provider }})
+                </span>
+            {% elif llm_enhancement and llm_enhancement.error %}
+                <span class="badge badge-secondary" style="margin-right: 0.5rem; background-color: #ff9800;" title="{{ llm_enhancement.error }}">
+                    ⚠️ AI Enhancement Failed
+                </span>
+            {% endif %}
+            {% if llm_enhancement and llm_enhancement.enhanced %}
+            <a href="?{% for fw in selected_frameworks %}frameworks={{ fw.id }}&{% endfor %}llm=false" 
+               class="btn btn-sm" 
+               style="padding: 0.4rem 0.8rem; font-size: 0.85rem; text-decoration: none;">
+                🔄 Refresh AI Analysis
+            </a>
+            <a href="?{% for fw in selected_frameworks %}frameworks={{ fw.id }}&{% endfor %}llm=false" 
+               class="btn btn-sm btn-secondary" 
+               style="padding: 0.4rem 0.8rem; font-size: 0.85rem; text-decoration: none; margin-left: 0.5rem;">
+                ⚙️ Disable AI Enhancement
+            </a>
+            {% else %}
+            <a href="?{% for fw in selected_frameworks %}frameworks={{ fw.id }}&{% endfor %}llm=true" 
+               class="btn btn-sm" 
+               style="padding: 0.4rem 0.8rem; font-size: 0.85rem; text-decoration: none;">
+                🤖 Enable AI Enhancement
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
     <p style="color: #666; margin-top: 0.5rem;">
         Comparing {{ comparison_data|length }} unique criteria across selected frameworks.
+        {% if llm_enhancement and llm_enhancement.enhanced %}
+            <br><small style="color: #2e7d32;">✨ AI-powered semantic analysis enabled</small>
+        {% endif %}
     </p>
+    
+    {% if llm_enhancement and llm_enhancement.enhanced and llm_enhancement.semantic_similarities %}
+    <div style="margin-top: 1rem; padding: 1rem; background-color: #e3f2fd; border-radius: 5px; border-left: 4px solid #2196f3;">
+        <h4 style="color: #1976d2; margin-top: 0; margin-bottom: 0.5rem;">🔍 Semantic Similarities</h4>
+        <p style="margin: 0.5rem 0; font-size: 0.9rem; color: #555;">
+            The following criteria are semantically similar (same concept, different names):
+        </p>
+        <div style="margin-top: 0.5rem;">
+            {% for criterion_name, similar_list in llm_enhancement.semantic_similarities.items %}
+                {% if similar_list %}
+                <div style="margin-bottom: 0.5rem;">
+                    <strong>{{ criterion_name }}</strong> is similar to:
+                    {% for similar in similar_list %}
+                        <span class="badge badge-info" style="margin-left: 0.25rem;">{{ similar }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if llm_enhancement and llm_enhancement.enhanced and llm_enhancement.overall_insights %}
+    <div style="margin-top: 1rem; padding: 1rem; background-color: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
+        <h4 style="color: #856404; margin-top: 0; margin-bottom: 0.5rem;">💡 Overall Comparison Insights</h4>
+        <p style="margin: 0.5rem 0 0 0; color: #555; font-size: 0.95rem; line-height: 1.6;">
+            {{ llm_enhancement.overall_insights }}
+        </p>
+    </div>
+    {% endif %}
+    
+    {% if llm_enhancement and llm_enhancement.enhanced and llm_enhancement.groups %}
+    <div style="margin-top: 1rem; padding: 1rem; background-color: #f3e5f5; border-radius: 5px; border-left: 4px solid #9c27b0;">
+        <h4 style="color: #7b1fa2; margin-top: 0; margin-bottom: 0.5rem;">📊 Related Criteria Groups</h4>
+        <div style="margin-top: 0.5rem;">
+            {% for group_name, criteria_list in llm_enhancement.groups.items %}
+            <div style="margin-bottom: 0.75rem;">
+                <strong>{{ group_name }}:</strong>
+                {% for criterion in criteria_list %}
+                    <span class="badge badge-secondary" style="margin-left: 0.25rem;">{{ criterion }}</span>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
     <div style="overflow-x: auto; margin-top: 1rem;">
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
@@ -189,28 +267,41 @@
                         {% if criterion.name in similarities %}
                             <span class="badge badge-success" style="margin-left: 0.5rem; font-size: 0.7rem;">In All</span>
                         {% endif %}
+                        {% if llm_enhancement and llm_enhancement.enhanced and llm_enhancement.semantic_similarities and criterion.name in llm_enhancement.semantic_similarities %}
+                            <span class="badge badge-info" style="margin-left: 0.5rem; font-size: 0.7rem;" title="Has semantically similar criteria">🔗 Similar</span>
+                        {% endif %}
                     </td>
                     {% for fw_data in criterion.framework_data %}
                     <td style="padding: 0.75rem; border: 1px solid #ddd;">
                         {% if fw_data.has_criterion %}
                             <span class="badge badge-success">✓ Included</span>
-                            {% if fw_data.category %}
-                                <br><small style="color: #666; display: block; margin-top: 0.25rem;">
-                                    <strong>Category:</strong> {{ fw_data.category }}
-                                </small>
-                            {% endif %}
+                            
+                            {# Always show framework-specific details #}
+                            {# Category hidden #}
                             {% if fw_data.description %}
                                 <br><small style="color: #666; display: block; margin-top: 0.25rem;">
-                                    <strong>Description:</strong> {{ fw_data.description|truncatewords:20 }}
+                                    <strong>Description:</strong> {{ fw_data.description|truncatewords:30 }}
                                 </small>
                             {% endif %}
                             {% if fw_data.definitions %}
                                 <br><small style="color: #666; display: block; margin-top: 0.25rem;">
-                                    <strong>Definition:</strong> 
-                                    {% for def in fw_data.definitions|slice:":1" %}
-                                        {{ def|truncatewords:15 }}
-                                    {% endfor %}
+                                    <strong>Definition{% if fw_data.definitions|length > 1 %}s{% endif %}:</strong> 
+                                    <ul style="margin: 0.25rem 0 0 0; padding-left: 1.2rem; font-size: 0.9em;">
+                                        {% for def in fw_data.definitions|slice:":3" %}
+                                            <li style="margin-bottom: 0.25rem;">{{ def|truncatewords:20 }}</li>
+                                        {% endfor %}
+                                    </ul>
                                 </small>
+                            {% endif %}
+                            
+                            {# Show LLM-enhanced description as additional enhancement, not replacement #}
+                            {% if fw_data.has_llm_enhancement and fw_data.llm_description %}
+                                <div style="margin-top: 0.75rem; padding: 0.5rem; background-color: #e8f5e9; border-radius: 4px; border-left: 3px solid #4caf50;">
+                                    <small style="color: #2e7d32; font-weight: bold; display: block; margin-bottom: 0.25rem;">🤖 AI-Enhanced Description:</small>
+                                    <p style="margin: 0; color: #555; font-size: 0.9rem; line-height: 1.4;">
+                                        {{ fw_data.llm_description }}
+                                    </p>
+                                </div>
                             {% endif %}
                         {% else %}
                             <span class="badge badge-secondary">Not included</span>
@@ -218,6 +309,38 @@
                     </td>
                     {% endfor %}
                 </tr>
+                {% if llm_enhancement and llm_enhancement.enhanced %}
+                    {% if criterion.name in llm_enhancement.summaries %}
+                    <tr style="background-color: #f0f7ff;">
+                        <td colspan="{{ selected_frameworks|length|add:1 }}" style="padding: 0.75rem; border: 1px solid #ddd;">
+                            <div style="padding: 0.75rem; background-color: #e3f2fd; border-radius: 5px; border-left: 4px solid #2196f3;">
+                                <strong style="color: #1976d2;">🤖 AI Comparison Summary:</strong>
+                                <p style="margin: 0.5rem 0 0 0; color: #555; font-size: 0.9rem; line-height: 1.5;">
+                                    {% for key, value in llm_enhancement.summaries.items %}
+                                        {% if key == criterion.name %}{{ value }}{% endif %}
+                                    {% endfor %}
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if llm_enhancement.insights %}
+                        {% for key, value in llm_enhancement.insights.items %}
+                            {% if key == criterion.name %}
+                            <tr style="background-color: #f9f9f9;">
+                                <td colspan="{{ selected_frameworks|length|add:1 }}" style="padding: 0.75rem; border: 1px solid #ddd;">
+                                    <div style="padding: 0.75rem; background-color: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
+                                        <strong style="color: #856404;">💡 AI Insight:</strong>
+                                        <p style="margin: 0.5rem 0 0 0; color: #555; font-size: 0.9rem; line-height: 1.5;">
+                                            {{ value }}
+                                        </p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                {% endif %}
                 {% endfor %}
             </tbody>
         </table>

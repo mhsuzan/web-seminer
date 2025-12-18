@@ -4,3 +4,12 @@ pandas>=2.0.0
 gunicorn>=21.2.0
 pdfplumber>=0.10.0
 PyPDF2>=3.0.0
+# Free LLM options (install what you need)
+sentence-transformers>=2.2.0  # FREE - Always recommended
+scikit-learn>=1.3.0  # Required for sentence-transformers
+numpy>=1.24.0  # Required for sentence-transformers
+ollama>=0.1.0  # FREE - Best free option (local)
+huggingface-hub>=0.20.0  # FREE - Hugging Face Inference API (free tier)
+requests>=2.31.0  # For API calls
+# Paid option (optional - only if explicitly enabled)
+# openai>=1.0.0  # PAID - Uncomment only if you want to use OpenAI

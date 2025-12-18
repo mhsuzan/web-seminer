@@ -8,78 +8,61 @@
     <div style="margin-top: 1rem;">
         <table style="width: 100%;">
             <tbody>
-                {% if framework.authors %}
-                <tr>
-                    <td style="width: 150px; font-weight: bold; vertical-align: top;">Authors:</td>
-                    <td>{{ framework.authors }}</td>
-                </tr>
-                {% endif %}
-                {% if framework.year %}
+                {# Authors row hidden #}
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Year:</td>
-                    <td>{{ framework.year }}</td>
+                    <td>{{ framework.year|default:"—" }}</td>
                 </tr>
-                {% endif %}
-                {% if framework.title %}
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Title:</td>
-                    <td>{{ framework.title }}</td>
+                    <td>{{ framework.title|default:"—" }}</td>
                 </tr>
-                {% endif %}
-                {% if framework.description %}
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Abstract:</td>
-                    <td>{{ framework.description }}</td>
+                    <td>{{ framework.description|default:"—" }}</td>
                 </tr>
-                {% endif %}
-                {% if framework.objectives %}
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Objectives:</td>
-                    <td>{{ framework.objectives }}</td>
+                    <td>{{ framework.objectives|default:"—" }}</td>
                 </tr>
-                {% endif %}
-                {% if framework.methodology %}
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Methodology:</td>
-                    <td>{{ framework.methodology }}</td>
+                    <td>{{ framework.methodology|default:"—" }}</td>
                 </tr>
-                {% endif %}
-                {% if framework.algorithm_used %}
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Algorithm Used:</td>
-                    <td>{{ framework.algorithm_used }}</td>
+                    <td>{{ framework.algorithm_used|default:"—" }}</td>
                 </tr>
-                {% endif %}
-                {% if framework.top_model %}
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Top Model:</td>
-                    <td>{{ framework.top_model }}</td>
+                    <td>{{ framework.top_model|default:"—" }}</td>
                 </tr>
-                {% endif %}
-                {% if framework.accuracy %}
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Accuracy:</td>
-                    <td>{{ framework.accuracy }}</td>
+                    <td>{{ framework.accuracy|default:"—" }}</td>
                 </tr>
-                {% endif %}
-                {% if framework.advantages %}
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Advantages:</td>
-                    <td>{{ framework.advantages }}</td>
+                    <td>{{ framework.advantages|default:"—" }}</td>
                 </tr>
-                {% endif %}
-                {% if framework.drawbacks %}
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Drawbacks:</td>
-                    <td>{{ framework.drawbacks }}</td>
+                    <td>{{ framework.drawbacks|default:"—" }}</td>
                 </tr>
-                {% endif %}
-                {% if framework.source %}
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Source:</td>
-                    <td>{{ framework.source }}</td>
+                    <td>
+                        {% if framework.source %}
+                            <a href="{% url 'frameworks:source_detail' %}?source={{ framework.source|urlencode }}" style="color: var(--primary-color);">
+                                {{ framework.source }}
+                            </a>
+                            <a href="{% url 'frameworks:source_edit_framework' framework.id %}" class="btn btn-sm" style="margin-left: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.875rem;">Edit</a>
+                        {% else %}
+                            <span style="color: var(--text-light);">—</span>
+                            <a href="{% url 'frameworks:source_edit_framework' framework.id %}" class="btn btn-sm" style="margin-left: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.875rem;">Add Source</a>
+                        {% endif %}
+                    </td>
                 </tr>
-                {% endif %}
             </tbody>
         </table>
     </div>
@@ -92,7 +75,7 @@
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Category</th>
+                {# Category column hidden #}
                 <th>Description</th>
                 <th>Definitions</th>
             </tr>
@@ -101,7 +84,7 @@
             {% for criterion in framework.criteria.all %}
             <tr>
                 <td><strong>{{ criterion.name }}</strong></td>
-                <td>{{ criterion.category|default:"—" }}</td>
+                {# Category column hidden #}
                 <td>{{ criterion.description|truncatewords:20|default:"—" }}</td>
                 <td>
                     {% if criterion.definitions.all %}
