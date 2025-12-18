@@ -1,0 +1,84 @@
+{% extends 'frameworks/base.html' %}
+
+{% block title %}Compare Frameworks - KG Quality Frameworks{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Compare Frameworks</h2>
+    <form method="get" style="margin-top: 1rem;">
+        <div class="form-group">
+            <label>Select frameworks to compare:</label>
+            <div class="checkbox-group">
+                {% for framework in frameworks %}
+                <div class="checkbox-item">
+                    <input type="checkbox" name="frameworks" value="{{ framework.id }}" 
+                           id="fw_{{ framework.id }}"
+                           {% if selected_frameworks and framework in selected_frameworks %}checked{% endif %}>
+                    <label for="fw_{{ framework.id }}" style="margin: 0;">{{ framework.name }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <button type="submit" class="btn">Compare</button>
+    </form>
+</div>
+
+{% if comparison_data %}
+<div class="card">
+    <h3>Comparison Results</h3>
+    <p class="results-count">
+        Comparing {{ selected_frameworks.count }} framework{{ selected_frameworks.count|pluralize }}:
+        {% for fw in selected_frameworks %}{{ fw.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    </p>
+    
+    <div style="overflow-x: auto; margin-top: 1rem;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Criterion</th>
+                    {% for framework in selected_frameworks %}
+                    <th>{{ framework.name }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for criterion in comparison_data %}
+                <tr>
+                    <td><strong>{{ criterion.name }}</strong></td>
+                    {% for fw_data in criterion.framework_data %}
+                    <td>
+                        {% if fw_data.has_criterion %}
+                            <span class="badge badge-success">✓ Included</span>
+                            {% if fw_data.category %}
+                                <br><small style="color: #666;">Category: {{ fw_data.category }}</small>
+                            {% endif %}
+                            {% if fw_data.description %}
+                                <br><small style="color: #666;">{{ fw_data.description|truncatewords:15 }}</small>
+                            {% endif %}
+                            {% if fw_data.definitions %}
+                                <br><small style="color: #666;">
+                                    {% for def in fw_data.definitions|slice:":1" %}
+                                        {{ def|truncatewords:10 }}
+                                    {% endfor %}
+                                </small>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge badge-secondary">Not included</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Helper function for template (since Django doesn't have dict filter by default)
+// We'll handle this server-side instead
+</script>
+{% endblock %}

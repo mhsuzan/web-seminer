@@ -1,0 +1,66 @@
+{% extends 'frameworks/base.html' %}
+
+{% block title %}Search Criteria - KG Quality Frameworks{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Search Criteria</h2>
+    <form method="get" style="margin-top: 1rem;">
+        <div class="form-group">
+            <input type="search" name="q" value="{{ query }}" placeholder="Enter criterion name (e.g., 'Completeness')" style="width: 100%;">
+        </div>
+        <button type="submit" class="btn">Search</button>
+    </form>
+</div>
+
+{% if results %}
+<div class="card">
+    <h3>Search Results for "{{ query }}"</h3>
+    <p class="results-count">{{ results|length }} criterion{{ results|length|pluralize }} found</p>
+    
+    {% for result in results %}
+    <div style="margin-bottom: 2rem; padding: 1.5rem; border: 1px solid #ddd; border-radius: 5px;">
+        <h4 style="color: #667eea; margin-bottom: 1rem;">{{ result.name }}</h4>
+        <p style="color: #666; margin-bottom: 1rem;">
+            Found in {{ result.frameworks|length }} framework{{ result.frameworks|length|pluralize }}
+        </p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Framework</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th>Definitions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fw_data in result.frameworks %}
+                <tr>
+                    <td><strong>{{ fw_data.framework.name }}</strong></td>
+                    <td>{{ fw_data.category|default:"—" }}</td>
+                    <td>{{ fw_data.description|truncatewords:20|default:"—" }}</td>
+                    <td>
+                        {% if fw_data.definitions %}
+                            <ul style="margin: 0; padding-left: 1.5rem;">
+                                {% for definition in fw_data.definitions %}
+                                <li style="margin-bottom: 0.5rem;">{{ definition|truncatewords:15 }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+</div>
+{% elif query %}
+<div class="card">
+    <p>No results found for "{{ query }}". Try a different search term.</p>
+</div>
+{% endif %}
+{% endblock %}

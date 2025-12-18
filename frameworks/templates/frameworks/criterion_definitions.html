@@ -1,0 +1,52 @@
+{% extends 'frameworks/base.html' %}
+
+{% block title %}Criterion Definitions - KG Quality Frameworks{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Compare Criterion Definitions</h2>
+    <form method="get" style="margin-top: 1rem;">
+        <div class="form-group">
+            <label>Select a criterion:</label>
+            <select name="criterion" onchange="this.form.submit()" style="width: 100%;">
+                <option value="">-- Select a criterion --</option>
+                {% for name in criteria_names %}
+                <option value="{{ name }}" {% if criterion_name == name %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+</div>
+
+{% if definitions %}
+<div class="card">
+    <h3>Definitions of "{{ criterion_name }}"</h3>
+    <p class="results-count">{{ definitions|length }} definition{{ definitions|length|pluralize }} found across {{ definitions|length }} framework{{ definitions|length|pluralize }}</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Framework</th>
+                <th>Category</th>
+                <th>Definition</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for def in definitions %}
+            <tr>
+                <td><strong>{{ def.framework.name }}</strong><br><small style="color: #666;">{{ def.framework.year|default:"" }}</small></td>
+                <td>{{ def.category|default:"—" }}</td>
+                <td>{{ def.definition }}</td>
+                <td>{{ def.notes|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% elif criterion_name %}
+<div class="card">
+    <p>No definitions found for "{{ criterion_name }}".</p>
+</div>
+{% endif %}
+{% endblock %}

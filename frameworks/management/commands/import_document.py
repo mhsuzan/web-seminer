@@ -117,57 +117,65 @@ class Command(BaseCommand):
     def parse_docx(self, doc):
         """Parse DOCX document to extract framework data"""
         frameworks_data = []
-        current_framework = None
         
-        for para in doc.paragraphs:
-            text = para.text.strip()
-            if not text:
-                continue
-            
-            # Try to detect framework headers
-            framework_match = re.search(r'([A-Z][a-z]+(?:\s+et\s+al\.)?)\s*(\d{4})?', text, re.IGNORECASE)
-            if framework_match:
-                if current_framework:
-                    frameworks_data.append(current_framework)
-                
-                authors = framework_match.group(1)
-                year = int(framework_match.group(2)) if framework_match.group(2) else None
-                
-                current_framework = {
-                    'name': f"{authors} {year}" if year else authors,
-                    'authors': authors,
-                    'year': year,
-                    'title': '',
-                    'description': '',
-                    'source': '',
-                    'criteria': [],
-                }
-            elif current_framework:
-                # Try to detect criteria
-                criterion_patterns = [
-                    r'(Completeness|Accuracy|Consistency|Conciseness|Timeliness|Relevancy|Interoperability|Availability|Usability)',
-                    r'Criterion[:\s]+([A-Z][a-z]+)',
-                ]
-                
-                for pattern in criterion_patterns:
-                    match = re.search(pattern, text, re.IGNORECASE)
-                    if match:
-                        criterion_name = match.group(1) if match.groups() else match.group(0)
-                        current_framework['criteria'].append({
-                            'name': criterion_name.strip(),
-                            'description': text,
-                            'category': '',
-                            'definitions': [text] if len(text) > 50 else [],
-                        })
-                        break
-        
-        if current_framework:
-            frameworks_data.append(current_framework)
-        
-        # Also try to parse tables
+        # Parse tables first (more reliable for structured data)
+        # This document uses tables, so we prioritize table parsing
         for table in doc.tables:
             frameworks_from_table = self.parse_table(table)
             frameworks_data.extend(frameworks_from_table)
+        
+        # Only parse paragraphs if no tables found
+        if not doc.tables:
+            current_framework = None
+            
+            for para in doc.paragraphs:
+                text = para.text.strip()
+                if not text:
+                    continue
+                
+                # Skip document headers
+                if text.lower().startswith(('comprehensive', 'the following', 'table present', 'literature review')):
+                    continue
+                
+                # Try to detect framework headers
+                framework_match = re.search(r'([A-Z][a-z]+(?:\s+et\s+al\.)?)\s*(\d{4})?', text, re.IGNORECASE)
+                if framework_match:
+                    if current_framework:
+                        frameworks_data.append(current_framework)
+                    
+                    authors = framework_match.group(1)
+                    year = int(framework_match.group(2)) if framework_match.group(2) else None
+                    
+                    current_framework = {
+                        'name': f"{authors} {year}" if year else authors,
+                        'authors': authors,
+                        'year': year,
+                        'title': '',
+                        'description': '',
+                        'source': '',
+                        'criteria': [],
+                    }
+                elif current_framework:
+                    # Try to detect criteria
+                    criterion_patterns = [
+                        r'(Completeness|Accuracy|Consistency|Conciseness|Timeliness|Relevancy|Interoperability|Availability|Usability)',
+                        r'Criterion[:\s]+([A-Z][a-z]+)',
+                    ]
+                    
+                    for pattern in criterion_patterns:
+                        match = re.search(pattern, text, re.IGNORECASE)
+                        if match:
+                            criterion_name = match.group(1) if match.groups() else match.group(0)
+                            current_framework['criteria'].append({
+                                'name': criterion_name.strip(),
+                                'description': text,
+                                'category': '',
+                                'definitions': [text] if len(text) > 50 else [],
+                            })
+                            break
+            
+            if current_framework:
+                frameworks_data.append(current_framework)
         
         return frameworks_data
 
@@ -375,66 +383,156 @@ class Command(BaseCommand):
         """Parse DOCX table to extract framework data"""
         frameworks_data = []
         
-        if not table.rows:
+        if not table.rows or len(table.rows) < 2:
             return frameworks_data
         
-        # Try to detect header row
+        # Get header row
         header_row = table.rows[0]
-        headers = [cell.text.strip() for cell in header_row.cells]
+        headers = [cell.text.strip().lower() for cell in header_row.cells]
         
-        # Look for common column names
-        framework_col = None
-        criterion_col = None
-        definition_col = None
+        # Find column indices for our specific table structure
+        title_col = None
+        year_col = None
+        dimensions_col = None
+        abstract_col = None
+        objectives_col = None
+        reference_col = None
         
         for i, header in enumerate(headers):
-            header_lower = header.lower()
-            if 'framework' in header_lower or 'author' in header_lower:
-                framework_col = i
-            elif 'criterion' in header_lower or 'metric' in header_lower:
-                criterion_col = i
-            elif 'definition' in header_lower or 'description' in header_lower:
-                definition_col = i
+            if 'title' in header:
+                title_col = i
+            elif 'year' in header or 'published' in header:
+                year_col = i
+            elif 'dimension' in header:
+                dimensions_col = i
+            elif 'abstract' in header:
+                abstract_col = i
+            elif 'objective' in header:
+                objectives_col = i
+            elif 'reference' in header:
+                reference_col = i
         
-        # Group rows by framework
-        current_framework = None
+        # Parse each data row
         for row in table.rows[1:]:  # Skip header
             cells = [cell.text.strip() for cell in row.cells]
             
-            if framework_col is not None and framework_col < len(cells):
-                framework_name = cells[framework_col]
-                if framework_name:
-                    if current_framework:
-                        frameworks_data.append(current_framework)
-                    
-                    # Extract year from framework name if present
-                    year_match = re.search(r'(\d{4})', framework_name)
-                    year = int(year_match.group(1)) if year_match else None
-                    
-                    current_framework = {
-                        'name': framework_name,
-                        'authors': framework_name.split()[0] if framework_name else '',
-                        'year': year,
-                        'title': '',
-                        'description': '',
-                        'source': '',
-                        'criteria': [],
-                    }
+            # Extract framework information
+            title = cells[title_col] if title_col is not None and title_col < len(cells) else ''
+            year_str = cells[year_col] if year_col is not None and year_col < len(cells) else ''
+            dimensions = cells[dimensions_col] if dimensions_col is not None and dimensions_col < len(cells) else ''
+            abstract = cells[abstract_col] if abstract_col is not None and abstract_col < len(cells) else ''
+            objectives = cells[objectives_col] if objectives_col is not None and objectives_col < len(cells) else ''
+            reference = cells[reference_col] if reference_col is not None and reference_col < len(cells) else ''
             
-            if current_framework and criterion_col is not None and criterion_col < len(cells):
-                criterion_name = cells[criterion_col] if criterion_col < len(cells) else ''
-                definition_text = cells[definition_col] if definition_col is not None and definition_col < len(cells) else ''
+            # Skip if title is too short or looks like a document header
+            if not title or len(title) < 10 or title.lower().startswith(('comprehensive', 'the following', 'table present', 'the')):
+                continue
+            
+            # Extract year
+            year = None
+            if year_str:
+                year_match = re.search(r'(\d{4})', year_str)
+                if year_match:
+                    try:
+                        year = int(year_match.group(1))
+                    except ValueError:
+                        pass
+            
+            # If no year found in year column, try to extract from title
+            if not year:
+                year_match = re.search(r'\((\d{4})\)', title)
+                if year_match:
+                    try:
+                        year = int(year_match.group(1))
+                    except ValueError:
+                        pass
+            
+            # Extract authors from title or reference
+            # Since reference column just says "Read", we'll try to extract from title
+            # or leave empty if title doesn't contain author info
+            authors = ''
+            
+            # Try reference column first (though it usually just says "Read")
+            if reference and reference.lower() != 'read':
+                author_match = re.search(r'^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+et\s+al\.)?)', reference)
+                if author_match:
+                    authors = author_match.group(1).strip()
+            
+            # If no authors from reference, try title patterns
+            if not authors and title:
+                # Look for common author patterns in titles
+                # Pattern: "Author et al. - Title" or "Author: Title"
+                title_clean = re.sub(r'\s*\(?\d{4}\)?', '', title)
                 
-                if criterion_name:
-                    current_framework['criteria'].append({
-                        'name': criterion_name,
-                        'description': definition_text,
-                        'category': '',
-                        'definitions': [definition_text] if definition_text else [],
-                    })
-        
-        if current_framework:
-            frameworks_data.append(current_framework)
+                # Check if title starts with what looks like an author name (short, capitalized words)
+                parts = re.split(r'[:\-–]', title_clean, 1)
+                if parts and len(parts) > 0:
+                    first_part = parts[0].strip()
+                    words = first_part.split()
+                    # If first part is short (likely author), use it
+                    if len(words) <= 4 and len(first_part) < 50:
+                        # Check if it looks like an author name (starts with capital, has 2-4 words)
+                        if all(w[0].isupper() if w else False for w in words[:2]):
+                            authors = first_part
+                
+                # If still no authors, leave empty (will be stored as empty string)
+            
+            # Parse dimensions/criteria
+            criteria = []
+            if dimensions:
+                # Normalize the dimensions string - replace newlines with spaces first
+                dimensions_normalized = re.sub(r'\s+', ' ', dimensions)
+                
+                # Handle special cases where words are split (e.g., "Syntactic\nValidity" -> "Syntactic Validity")
+                # Join words that might have been split: "Syntactic Validity", "Semantic Accuracy", etc.
+                dimensions_normalized = re.sub(r'\b(Syntactic|Semantic|Representational)\s+([A-Z][a-z]+)', r'\1 \2', dimensions_normalized)
+                
+                # Split by comma or semicolon
+                dim_list = re.split(r'[,;]+', dimensions_normalized)
+                
+                seen_dimensions = set()  # Avoid duplicates
+                
+                for dim in dim_list:
+                    dim = dim.strip()
+                    # Filter out very short strings and common non-dimension words
+                    if dim and len(dim) > 2 and dim.lower() not in ['n/a', 'na', 'read', 'and', 'or', 'the']:
+                        # Clean up common prefixes that might be split across lines
+                        dim = re.sub(r'^(Syntactic|Semantic|Representational)[\s-]+', '', dim, flags=re.IGNORECASE)
+                        # Remove trailing periods and dashes
+                        dim = dim.rstrip('.-').strip()
+                        
+                        # Skip if it's just a single letter, number, or common words
+                        if dim and len(dim) > 2 and not re.match(r'^[\d\s]+$', dim):
+                            # Capitalize first letter
+                            dim = dim[0].upper() + dim[1:] if len(dim) > 1 else dim
+                            
+                            # Avoid duplicates (case-insensitive)
+                            dim_lower = dim.lower()
+                            if dim_lower not in seen_dimensions:
+                                seen_dimensions.add(dim_lower)
+                                criteria.append({
+                                    'name': dim,
+                                    'description': f"Quality dimension from {title}",
+                                    'category': '',
+                                    'definitions': [f"Quality dimension from {title} ({year})"] if year else [f"Quality dimension from {title}"],
+                                })
+            
+            # Create framework entry
+            framework_data = {
+                'name': title,
+                'authors': authors,
+                'year': year,
+                'title': title,
+                'description': abstract if abstract else '',
+                'source': reference if reference else '',
+                'criteria': criteria,
+            }
+            
+            # Add objectives to description if available
+            if objectives:
+                framework_data['description'] += f"\n\nObjectives: {objectives}"
+            
+            frameworks_data.append(framework_data)
         
         return frameworks_data
 

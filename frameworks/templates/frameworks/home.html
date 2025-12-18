@@ -1,0 +1,62 @@
+{% extends 'frameworks/base.html' %}
+
+{% block title %}Home - KG Quality Frameworks{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Knowledge Graph Quality Frameworks Comparison</h2>
+    <p style="margin-top: 1rem; color: #666;">
+        Compare and analyze Knowledge Graph quality frameworks and criteria catalogs from literature.
+        Answer questions like:
+    </p>
+    <ul style="margin-top: 1rem; margin-left: 2rem; color: #666;">
+        <li>What are the similarities and differences between frameworks?</li>
+        <li>Which frameworks include a specific criterion?</li>
+        <li>What are the different definitions of criteria across frameworks?</li>
+    </ul>
+</div>
+
+<div class="card">
+    <h3>Quick Search</h3>
+    <form action="{% url 'frameworks:search_criteria' %}" method="get" style="margin-top: 1rem;">
+        <div class="form-group">
+            <input type="search" name="q" placeholder="Search for a criterion (e.g., 'Completeness')" style="width: 100%;">
+        </div>
+        <button type="submit" class="btn">Search</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Browse Frameworks</h3>
+    <p class="results-count">{{ frameworks.count }} framework{{ frameworks.count|pluralize }} available</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        {% for framework in frameworks %}
+        <div style="padding: 1rem; border: 1px solid #ddd; border-radius: 5px;">
+            <h4><a href="{% url 'frameworks:framework_detail' framework.id %}" style="color: #667eea; text-decoration: none;">{{ framework.name }}</a></h4>
+            {% if framework.year %}<p style="color: #666; font-size: 0.9rem;">{{ framework.year }}</p>{% endif %}
+            {% if framework.authors %}<p style="color: #666; font-size: 0.85rem; margin-top: 0.5rem;">{{ framework.authors|truncatewords:10 }}</p>{% endif %}
+        </div>
+        {% empty %}
+        <p>No frameworks available yet. Import data to get started.</p>
+        {% endfor %}
+    </div>
+    <div style="margin-top: 1.5rem;">
+        <a href="{% url 'frameworks:framework_list' %}" class="btn">View All Frameworks</a>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Popular Criteria</h3>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
+        {% for criterion_name in criteria_names|slice:":20" %}
+        <a href="{% url 'frameworks:criterion_definitions' %}?criterion={{ criterion_name|urlencode }}" 
+           class="badge badge-secondary" 
+           style="text-decoration: none;">
+            {{ criterion_name }}
+        </a>
+        {% empty %}
+        <p>No criteria available yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

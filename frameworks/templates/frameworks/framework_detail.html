@@ -1,0 +1,59 @@
+{% extends 'frameworks/base.html' %}
+
+{% block title %}{{ framework.name }} - KG Quality Frameworks{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>{{ framework.name }}</h2>
+    <div style="margin-top: 1rem;">
+        {% if framework.authors %}<p><strong>Authors:</strong> {{ framework.authors }}</p>{% endif %}
+        {% if framework.year %}<p><strong>Year:</strong> {{ framework.year }}</p>{% endif %}
+        {% if framework.title %}<p><strong>Title:</strong> {{ framework.title }}</p>{% endif %}
+        {% if framework.source %}<p><strong>Source:</strong> {{ framework.source }}</p>{% endif %}
+        {% if framework.description %}<p style="margin-top: 1rem;"><strong>Description:</strong> {{ framework.description }}</p>{% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h3>Criteria ({{ framework.criteria.count }})</h3>
+    {% if framework.criteria.all %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Definitions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for criterion in framework.criteria.all %}
+            <tr>
+                <td><strong>{{ criterion.name }}</strong></td>
+                <td>{{ criterion.category|default:"—" }}</td>
+                <td>{{ criterion.description|truncatewords:20|default:"—" }}</td>
+                <td>
+                    {% if criterion.definitions.all %}
+                        <ul style="margin: 0; padding-left: 1.5rem;">
+                            {% for definition in criterion.definitions.all %}
+                            <li style="margin-bottom: 0.5rem;">{{ definition.definition_text|truncatewords:15 }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No criteria defined for this framework.</p>
+    {% endif %}
+</div>
+
+<div style="margin-top: 1rem;">
+    <a href="{% url 'frameworks:framework_list' %}" class="btn btn-secondary">Back to Frameworks</a>
+    <a href="{% url 'frameworks:compare_frameworks' %}?frameworks={{ framework.id }}" class="btn">Compare with Others</a>
+</div>
+{% endblock %}

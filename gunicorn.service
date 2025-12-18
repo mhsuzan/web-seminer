@@ -1,0 +1,22 @@
+[Unit]
+Description=Gunicorn daemon for KG Quality Frameworks Django app
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/root/seminer
+Environment="PATH=/root/seminer/venv/bin"
+ExecStart=/root/seminer/venv/bin/gunicorn \
+    --bind 127.0.0.1:8002 \
+    --workers 3 \
+    --timeout 120 \
+    --access-logfile /root/seminer/logs/access.log \
+    --error-logfile /root/seminer/logs/error.log \
+    kg_quality.wsgi:application
+
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
