@@ -396,6 +396,12 @@ class Command(BaseCommand):
         dimensions_col = None
         abstract_col = None
         objectives_col = None
+        methodology_col = None
+        algorithm_col = None
+        top_model_col = None
+        accuracy_col = None
+        advantages_col = None
+        drawbacks_col = None
         reference_col = None
         
         for i, header in enumerate(headers):
@@ -409,6 +415,18 @@ class Command(BaseCommand):
                 abstract_col = i
             elif 'objective' in header:
                 objectives_col = i
+            elif 'methodology' in header:
+                methodology_col = i
+            elif 'algorithm' in header:
+                algorithm_col = i
+            elif 'top model' in header or 'topmodel' in header.replace(' ', '').lower():
+                top_model_col = i
+            elif 'accuracy' in header:
+                accuracy_col = i
+            elif 'advantage' in header:
+                advantages_col = i
+            elif 'drawback' in header:
+                drawbacks_col = i
             elif 'reference' in header:
                 reference_col = i
         
@@ -422,6 +440,12 @@ class Command(BaseCommand):
             dimensions = cells[dimensions_col] if dimensions_col is not None and dimensions_col < len(cells) else ''
             abstract = cells[abstract_col] if abstract_col is not None and abstract_col < len(cells) else ''
             objectives = cells[objectives_col] if objectives_col is not None and objectives_col < len(cells) else ''
+            methodology = cells[methodology_col] if methodology_col is not None and methodology_col < len(cells) else ''
+            algorithm_used = cells[algorithm_col] if algorithm_col is not None and algorithm_col < len(cells) else ''
+            top_model = cells[top_model_col] if top_model_col is not None and top_model_col < len(cells) else ''
+            accuracy = cells[accuracy_col] if accuracy_col is not None and accuracy_col < len(cells) else ''
+            advantages = cells[advantages_col] if advantages_col is not None and advantages_col < len(cells) else ''
+            drawbacks = cells[drawbacks_col] if drawbacks_col is not None and drawbacks_col < len(cells) else ''
             reference = cells[reference_col] if reference_col is not None and reference_col < len(cells) else ''
             
             # Skip if title is too short or looks like a document header
@@ -524,13 +548,16 @@ class Command(BaseCommand):
                 'year': year,
                 'title': title,
                 'description': abstract if abstract else '',
+                'objectives': objectives if objectives else '',
+                'methodology': methodology if methodology else '',
+                'algorithm_used': algorithm_used if algorithm_used else '',
+                'top_model': top_model if top_model else '',
+                'accuracy': accuracy if accuracy else '',
+                'advantages': advantages if advantages else '',
+                'drawbacks': drawbacks if drawbacks else '',
                 'source': reference if reference else '',
                 'criteria': criteria,
             }
-            
-            # Add objectives to description if available
-            if objectives:
-                framework_data['description'] += f"\n\nObjectives: {objectives}"
             
             frameworks_data.append(framework_data)
         
@@ -549,9 +576,32 @@ class Command(BaseCommand):
                     'year': fw_data.get('year'),
                     'title': fw_data.get('title', ''),
                     'description': fw_data.get('description', ''),
+                    'objectives': fw_data.get('objectives', ''),
+                    'methodology': fw_data.get('methodology', ''),
+                    'algorithm_used': fw_data.get('algorithm_used', ''),
+                    'top_model': fw_data.get('top_model', ''),
+                    'accuracy': fw_data.get('accuracy', ''),
+                    'advantages': fw_data.get('advantages', ''),
+                    'drawbacks': fw_data.get('drawbacks', ''),
                     'source': fw_data.get('source', ''),
                 }
             )
+            
+            # Update existing framework if it was already there
+            if not created:
+                framework.authors = fw_data.get('authors', '')
+                framework.year = fw_data.get('year')
+                framework.title = fw_data.get('title', '')
+                framework.description = fw_data.get('description', '')
+                framework.objectives = fw_data.get('objectives', '')
+                framework.methodology = fw_data.get('methodology', '')
+                framework.algorithm_used = fw_data.get('algorithm_used', '')
+                framework.top_model = fw_data.get('top_model', '')
+                framework.accuracy = fw_data.get('accuracy', '')
+                framework.advantages = fw_data.get('advantages', '')
+                framework.drawbacks = fw_data.get('drawbacks', '')
+                framework.source = fw_data.get('source', '')
+                framework.save()
             
             if created:
                 imported_count += 1
