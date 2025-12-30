@@ -8,7 +8,7 @@
     <form method="get" style="margin-top: 1rem;">
         <div class="form-group">
             <label>Select a criterion:</label>
-            <select name="criterion" onchange="this.form.submit()" style="width: 100%;">
+            <select name="criterion" onchange="this.form.submit()" class="form-control">
                 <option value="">-- Select a criterion --</option>
                 {% for name in criteria_names %}
                 <option value="{{ name }}" {% if criterion_name == name %}selected{% endif %}>{{ name }}</option>
@@ -29,7 +29,6 @@
                 <th>Framework</th>
                 {# Category column hidden #}
                 <th>Definition</th>
-                <th>Notes</th>
             </tr>
         </thead>
         <tbody>
@@ -38,7 +37,6 @@
                 <td><strong>{{ def.framework.name }}</strong><br><small style="color: #666;">{{ def.framework.year|default:"" }}</small></td>
                 {# Category column hidden #}
                 <td>{{ def.definition }}</td>
-                <td>{{ def.notes|default:"—" }}</td>
             </tr>
             {% endfor %}
         </tbody>

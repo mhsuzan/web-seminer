@@ -11,13 +11,14 @@
     <form method="get" style="margin-top: 1rem;">
         <div class="form-group">
             <label>Select frameworks to compare:</label>
-            <div class="checkbox-group" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 1rem; border-radius: 5px;">
+            <div class="checkbox-group" style="max-height: 400px; overflow-y: auto; border: 2px solid var(--border-color); padding: 1rem; border-radius: 10px; background: var(--bg-white);">
                 {% for framework in frameworks %}
-                <div class="checkbox-item" style="margin-bottom: 0.5rem;">
+                <div class="checkbox-item" style="margin-bottom: 0.75rem; padding: 0.5rem; border-radius: 5px; transition: background 0.2s;">
                     <input type="checkbox" name="frameworks" value="{{ framework.id }}" 
                            id="fw_{{ framework.id }}"
-                           {% if selected_frameworks and framework in selected_frameworks %}checked{% endif %}>
-                    <label for="fw_{{ framework.id }}" style="margin: 0; margin-left: 0.5rem;">
+                           {% if selected_frameworks and framework in selected_frameworks %}checked{% endif %}
+                           style="cursor: pointer;">
+                    <label for="fw_{{ framework.id }}" style="margin: 0; margin-left: 0.5rem; cursor: pointer; user-select: none;">
                         {{ framework.name }} {% if framework.year %}({{ framework.year }}){% endif %}
                     </label>
                 </div>
@@ -64,8 +65,8 @@
 
 <div class="card">
     <h3>Framework Details Comparison</h3>
-    <div style="overflow-x: auto; margin-top: 1rem;">
-        <table style="width: 100%; border-collapse: collapse;">
+    <div style="overflow-x: auto; margin-top: 1rem; -webkit-overflow-scrolling: touch;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
             <thead>
                 <tr style="background-color: #f5f5f5;">
                     <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd; min-width: 150px;">Field</th>
@@ -246,8 +247,8 @@
     </div>
     {% endif %}
     
-    <div style="overflow-x: auto; margin-top: 1rem;">
-        <table style="width: 100%; border-collapse: collapse;">
+    <div style="overflow-x: auto; margin-top: 1rem; -webkit-overflow-scrolling: touch;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
             <thead>
                 <tr style="background-color: #f5f5f5;">
                     <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd; min-width: 200px;">Criterion</th>

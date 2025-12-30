@@ -167,12 +167,30 @@
             background: var(--bg-white);
             border-radius: 8px;
             overflow: hidden;
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        @media (min-width: 768px) {
+            table {
+                display: table;
+                white-space: normal;
+            }
         }
         
         th, td {
             padding: 1rem;
             text-align: left;
             border-bottom: 1px solid var(--border-color);
+            white-space: normal;
+        }
+        
+        @media (max-width: 767px) {
+            th, td {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.875rem;
+            }
         }
         
         th {
@@ -198,18 +216,40 @@
         
         .form-control {
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.875rem 1rem;
             border: 2px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 1rem;
             font-family: inherit;
-            transition: border-color 0.3s ease;
+            transition: all 0.3s ease;
+            background: var(--bg-white);
+            color: var(--text-dark);
         }
         
         .form-control:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        input[type="search"] {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: var(--bg-white);
+            color: var(--text-dark);
+        }
+        
+        input[type="search"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            transform: translateY(-1px);
         }
         
         textarea.form-control {
@@ -338,10 +378,85 @@
             font-size: 0.875rem;
         }
         
+        /* Prevent text selection issues */
+        p, td, th, div, span, li {
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+        }
+        
+        /* Ensure paragraphs don't act like inputs */
+        p, td, th {
+            cursor: default;
+        }
+        
+        /* Dropdown styling */
+        select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: var(--bg-white);
+            color: var(--text-dark);
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 2.5rem;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+        
+        /* Mobile menu toggle */
+        .nav-toggle {
+            display: none;
+            flex-direction: column;
+            background: none;
+            border: none;
+            cursor: pointer;
+            gap: 4px;
+            padding: 0.5rem;
+        }
+        
+        .nav-toggle span {
+            width: 25px;
+            height: 3px;
+            background: var(--text-dark);
+            transition: all 0.3s ease;
+            display: block;
+        }
+        
         @media (max-width: 768px) {
+            .nav-toggle {
+                display: flex;
+            }
+            
             .nav-links {
+                position: fixed;
+                left: -100%;
+                top: 70px;
                 flex-direction: column;
                 gap: 0.5rem;
+                background: white;
+                width: 100%;
+                text-align: center;
+                transition: 0.3s;
+                box-shadow: var(--shadow);
+                padding: 2rem 0;
+                z-index: 999;
+            }
+            
+            .nav-links.active {
+                left: 0;
             }
             
             .container {
@@ -351,6 +466,41 @@
             .card {
                 padding: 1.5rem;
             }
+            
+            .nav-brand h1 {
+                font-size: 1.25rem;
+            }
+            
+            table {
+                font-size: 0.875rem;
+            }
+            
+            .btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem 10px;
+            }
+            
+            .card {
+                padding: 1rem;
+            }
+            
+            .nav-brand h1 {
+                font-size: 1.1rem;
+            }
+            
+            table {
+                font-size: 0.8rem;
+            }
+            
+            th, td {
+                padding: 0.5rem 0.25rem;
+            }
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -359,13 +509,17 @@
     <nav class="navbar">
         <div class="container">
             <div class="nav-brand">
-                <h1>KG Quality Frameworks</h1>
+                <h1><a href="{% url 'frameworks:home' %}" style="text-decoration: none; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">KG Quality Frameworks</a></h1>
             </div>
-            <ul class="nav-links">
+            <button class="nav-toggle" onclick="toggleNav()" aria-label="Toggle navigation">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-links" id="navLinks">
                 <li><a href="{% url 'frameworks:home' %}">Home</a></li>
                 <li><a href="{% url 'frameworks:framework_list' %}">Frameworks</a></li>
                 <li><a href="{% url 'frameworks:compare_frameworks' %}">Compare</a></li>
-                <li><a href="{% url 'frameworks:search_criteria' %}">Search</a></li>
             </ul>
         </div>
     </nav>
@@ -382,6 +536,29 @@
         {% block content %}{% endblock %}
     </div>
     
+    <script>
+        function toggleNav() {
+            const navLinks = document.getElementById('navLinks');
+            navLinks.classList.toggle('active');
+        }
+        
+        // Close mobile menu when clicking on a link
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                const navLinks = document.getElementById('navLinks');
+                navLinks.classList.remove('active');
+            });
+        });
+        
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', (e) => {
+            const navLinks = document.getElementById('navLinks');
+            const navToggle = document.querySelector('.nav-toggle');
+            if (!navLinks.contains(e.target) && !navToggle.contains(e.target)) {
+                navLinks.classList.remove('active');
+            }
+        });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

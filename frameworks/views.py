@@ -76,6 +76,18 @@ def framework_detail(request, framework_id):
         # Calculate data completeness
         framework.data_completeness = calculate_completeness(framework)
         
+        # Deduplicate criteria by name (case-insensitive) - keep first occurrence
+        seen_criteria = {}
+        unique_criteria = []
+        for criterion in framework.criteria.all():
+            key = criterion.name.lower().strip()
+            if key not in seen_criteria:
+                seen_criteria[key] = True
+                unique_criteria.append(criterion)
+        
+        # Replace criteria queryset with deduplicated list
+        framework.criteria_list = unique_criteria
+        
         context = {
             'framework': framework,
         }
@@ -287,26 +299,46 @@ def search_criteria(request):
         return render(request, 'frameworks/search_criteria.html', {
             'query': '',
             'results': None,
+            'keywords': [],
         })
     
-    # Search criteria by name or description - only get criteria that actually match the query
-    query_lower = query.lower().strip()
+    # Split query by commas to support multiple keywords
+    keywords = [k.strip() for k in query.split(',') if k.strip()]
     
-    # Search for criteria where name or description contains the query
-    # This ensures we only get criteria that actually match, not all criteria with similar names
-    criteria = Criterion.objects.filter(
-        Q(name__icontains=query) | Q(description__icontains=query)
-    ).select_related('framework').prefetch_related('definitions').distinct()
+    if not keywords:
+        return render(request, 'frameworks/search_criteria.html', {
+            'query': query,
+            'results': None,
+            'keywords': [],
+        })
+    
+    # Build Q objects for each keyword - criteria must match ALL keywords (AND logic)
+    # Each keyword should match either name or description
+    q_objects = Q()
+    for keyword in keywords:
+        keyword_q = Q(name__icontains=keyword) | Q(description__icontains=keyword)
+        q_objects &= keyword_q  # AND logic - all keywords must match
+    
+    # Search for criteria that match ALL keywords
+    criteria = Criterion.objects.filter(q_objects).select_related('framework').prefetch_related('definitions').distinct()
     
     # Group by criterion name, but only include the specific criteria instances that matched
     results = {}
     for criterion in criteria:
-        # Verify this specific criterion instance matches (double-check for precision)
+        # Verify this specific criterion instance matches all keywords (double-check for precision)
         name_lower = criterion.name.lower()
         desc_lower = (criterion.description.lower() if criterion.description else '')
         
-        if query_lower not in name_lower and query_lower not in desc_lower:
-            continue  # Skip if this specific instance doesn't match
+        # Check if all keywords match this criterion
+        matches_all = True
+        for keyword in keywords:
+            keyword_lower = keyword.lower()
+            if keyword_lower not in name_lower and keyword_lower not in desc_lower:
+                matches_all = False
+                break
+        
+        if not matches_all:
+            continue  # Skip if this specific instance doesn't match all keywords
         
         if criterion.name not in results:
             results[criterion.name] = {
@@ -349,20 +381,22 @@ def search_criteria(request):
         })
     
     # Sort results by relevance (exact name matches first, then partial matches)
-    query_lower = query.lower()
+    # For multiple keywords, prioritize results that match the first keyword best
+    first_keyword_lower = keywords[0].lower() if keywords else ''
     def sort_key(result):
         name_lower = result['name'].lower()
-        if name_lower == query_lower:
-            return (0, name_lower)  # Exact match
-        elif name_lower.startswith(query_lower):
-            return (1, name_lower)  # Starts with query
+        if first_keyword_lower and name_lower == first_keyword_lower:
+            return (0, name_lower)  # Exact match with first keyword
+        elif first_keyword_lower and name_lower.startswith(first_keyword_lower):
+            return (1, name_lower)  # Starts with first keyword
         else:
-            return (2, name_lower)  # Contains query
+            return (2, name_lower)  # Contains first keyword
     
     sorted_results = sorted(results.values(), key=sort_key)
     
     context = {
         'query': query,
+        'keywords': keywords,
         'results': sorted_results,
     }
     return render(request, 'frameworks/search_criteria.html', context)
@@ -385,15 +419,23 @@ def criterion_definitions(request):
     ).prefetch_related('definitions').order_by('framework')
     
     definitions_data = []
+    seen_definitions = set()  # Track to prevent duplicates
     for criterion in criteria:
         for definition in criterion.definitions.all():
-            definitions_data.append({
-                'framework': criterion.framework,
-                'criterion': criterion,
-                'definition': definition.definition_text,
-                'notes': definition.notes,
-                'category': criterion.category,
-            })
+            # Normalize definition text for deduplication
+            def_text = definition.definition_text.strip() if definition.definition_text else ''
+            if def_text:
+                def_key = def_text.lower()
+                # Skip if we've seen this exact definition for this framework
+                framework_def_key = (criterion.framework.id, def_key)
+                if framework_def_key not in seen_definitions:
+                    seen_definitions.add(framework_def_key)
+                    definitions_data.append({
+                        'framework': criterion.framework,
+                        'criterion': criterion,
+                        'definition': def_text,
+                        'category': criterion.category,
+                    })
     
     context = {
         'criterion_name': criterion_name,

@@ -7,7 +7,7 @@
     <h2>Search Criteria</h2>
     <form method="get" style="margin-top: 1rem;">
         <div class="form-group">
-            <input type="search" name="q" value="{{ query }}" placeholder="Enter criterion name (e.g., 'Completeness')" style="width: 100%;">
+            <input type="search" name="q" value="{{ query }}" placeholder="Enter criteria (e.g., 'Completeness' or 'Completeness, Accuracy')" class="form-control">
         </div>
         <button type="submit" class="btn">Search</button>
     </form>
@@ -15,7 +15,14 @@
 
 {% if results %}
 <div class="card">
-    <h3>Search Results for "{{ query }}"</h3>
+    <h3>Search Results{% if keywords|length > 1 %} (matching all keywords){% endif %}</h3>
+    {% if keywords|length > 1 %}
+    <p style="color: #666; margin-bottom: 1rem;">
+        Keywords: {% for keyword in keywords %}<strong>{{ keyword }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}
+    </p>
+    {% else %}
+    <p style="color: #666; margin-bottom: 1rem;">Searching for: <strong>{{ query }}</strong></p>
+    {% endif %}
     <p class="results-count">{{ results|length }} criterion{{ results|length|pluralize }} found</p>
     
     {% for result in results %}
@@ -25,7 +32,8 @@
             Found in {{ result.frameworks|length }} framework{{ result.frameworks|length|pluralize }}
         </p>
         
-        <table>
+        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+        <table style="min-width: 600px;">
             <thead>
                 <tr>
                     <th>Framework</th>
@@ -63,7 +71,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        <a href="{% url 'frameworks:framework_detail' framework_id=fw_data.framework.id %}" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; text-decoration: none; display: inline-block;">
+                        <a href="{% url 'frameworks:framework_detail' framework_id=fw_data.framework.id %}" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; text-decoration: none; display: inline-block;">
                             View Framework
                         </a>
                     </td>
@@ -71,12 +79,13 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
     {% endfor %}
 </div>
 {% elif query %}
 <div class="card">
-    <p>No results found for "{{ query }}". Try a different search term.</p>
+    <p>No results found{% if keywords|length > 1 %} matching all keywords{% endif %} for "{{ query }}". Try a different search term{% if keywords|length > 1 %} or fewer keywords{% endif %}.</p>
 </div>
 {% endif %}
 {% endblock %}
