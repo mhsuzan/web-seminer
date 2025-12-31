@@ -392,7 +392,12 @@ def search_criteria(request):
 
 def criterion_definitions(request):
     """Compare definitions of a specific criterion across frameworks"""
-    criterion_name = request.GET.get('criterion', '').strip()
+    from urllib.parse import unquote
+    
+    # Get and decode the criterion name from URL
+    criterion_name_raw = request.GET.get('criterion', '').strip()
+    criterion_name = unquote(criterion_name_raw) if criterion_name_raw else ''
+    criterion_name = criterion_name.strip()
     
     all_criteria_names = list(Criterion.objects.values_list('name', flat=True).distinct())
     name_variants = defaultdict(list)
@@ -422,9 +427,21 @@ def criterion_definitions(request):
             'definitions': None,
         })
     
+    # Try exact match first (case-insensitive)
     criteria = Criterion.objects.filter(name__iexact=criterion_name).select_related(
         'framework'
     ).prefetch_related('definitions').order_by('framework')
+    
+    # If no exact match found, try without closing parenthesis (for backward compatibility)
+    if not criteria.exists() and criterion_name.endswith(')'):
+        # Try matching without the closing parenthesis
+        name_without_close = criterion_name.rstrip(')')
+        criteria = Criterion.objects.filter(name__iexact=name_without_close).select_related(
+            'framework'
+        ).prefetch_related('definitions').order_by('framework')
+        if criteria.exists():
+            # Update criterion_name to match what was found
+            criterion_name = criteria.first().name
     
     definitions_data = []
     seen_definitions = set()

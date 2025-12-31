@@ -1,4 +1,5 @@
 {% extends 'frameworks/base.html' %}
+{% load framework_filters %}
 
 {% block title %}Compare Frameworks - KG Quality Frameworks{% endblock %}
 
@@ -143,7 +144,7 @@
                 <tr>
                     <td style="padding: 0.75rem; border: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">Source</td>
                     {% for fw_detail in framework_details %}
-                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.source|default:"—" }}</td>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd;">{{ fw_detail.source|format_source_link }}</td>
                     {% endfor %}
                 </tr>
                 <tr>

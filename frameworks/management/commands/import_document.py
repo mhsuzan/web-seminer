@@ -856,22 +856,26 @@ class Command(BaseCommand):
                 ref_cell = row.cells[reference_col]
                 ref_text, ref_url = self.extract_hyperlinks_from_cell(ref_cell)
                 
-                # Combine text and URL appropriately
+                # Prioritize URL extraction - if we have a hyperlink URL, use it
                 if ref_url:
-                    # If we have a URL, use it (prefer URL over text if text is just "Read" or similar)
-                    if ref_text.lower() in ['read', 'link', 'url', 'source']:
+                    # Clean up the URL (remove any whitespace)
+                    ref_url = ref_url.strip()
+                    # If text is just "Read" or similar placeholder, use URL only
+                    if ref_text.lower().strip() in ['read', 'link', 'url', 'source', 'click here', 'here']:
                         reference = ref_url
                     else:
-                        # If text is meaningful, combine them: "text (URL)" or just URL if text is empty
-                        if ref_text and ref_text.strip():
-                            combined = f"{ref_text} ({ref_url})"
-                            # Ensure we don't exceed the 500 character limit for the source field
+                        # If text is meaningful, store in format: "TEXT|URL" for template parsing
+                        # This allows us to display the text but link to the URL
+                        if ref_text and ref_text.strip() and ref_text.strip().lower() != ref_url.lower():
+                            # Store as "TEXT|URL" format (max 500 chars total)
+                            combined = f"{ref_text.strip()}|{ref_url}"
                             if len(combined) > 500:
-                                # If combined is too long, prefer the URL
+                                # If too long, prefer URL
                                 reference = ref_url[:500]
                             else:
                                 reference = combined
                         else:
+                            # Just use URL if text is empty or same as URL
                             reference = ref_url[:500]  # Truncate if needed
                 else:
                     # No hyperlink found, just use the text

@@ -1,4 +1,5 @@
 {% extends 'frameworks/base.html' %}
+{% load framework_filters %}
 
 {% block title %}{{ framework.name }} - KG Quality Frameworks{% endblock %}
 
@@ -55,13 +56,7 @@
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Source:</td>
                     <td>
-                        {% if framework.source %}
-                            <a href="{% url 'frameworks:source_detail' %}?source={{ framework.source|urlencode }}" style="color: var(--primary-color);">
-                                {{ framework.source }}
-                            </a>
-                        {% else %}
-                            <span style="color: var(--text-light);">—</span>
-                        {% endif %}
+                        {{ framework.source|format_source_link }}
                     </td>
                 </tr>
             </tbody>
@@ -86,7 +81,7 @@
         <tbody>
             {% for criterion in framework.criteria_list %}
             <tr>
-                <td><strong>{{ criterion.name }}</strong></td>
+                <td><strong><a href="{% url 'frameworks:criterion_definitions' %}?criterion={{ criterion.name|urlencode }}" style="color: var(--primary-color); text-decoration: none;">{{ criterion.name }}</a></strong></td>
                 <td>
                     {% if criterion.author %}
                         <small style="color: #666;">{{ criterion.author|truncatewords:10 }}</small>
@@ -131,7 +126,7 @@
         <tbody>
             {% for criterion in framework.criteria.all %}
             <tr>
-                <td><strong>{{ criterion.name }}</strong></td>
+                <td><strong><a href="{% url 'frameworks:criterion_definitions' %}?criterion={{ criterion.name|urlencode }}" style="color: var(--primary-color); text-decoration: none;">{{ criterion.name }}</a></strong></td>
                 <td>
                     {% if criterion.author %}
                         <small style="color: #666;">{{ criterion.author|truncatewords:10 }}</small>
