@@ -8,7 +8,10 @@
     <div style="margin-top: 1rem; overflow-x: auto; -webkit-overflow-scrolling: touch;">
         <table style="width: 100%; min-width: 500px;">
             <tbody>
-                {# Authors row hidden #}
+                <tr>
+                    <td style="font-weight: bold; vertical-align: top;">Author(s):</td>
+                    <td>{{ framework.authors|default:"—" }}</td>
+                </tr>
                 <tr>
                     <td style="font-weight: bold; vertical-align: top;">Year:</td>
                     <td>{{ framework.year|default:"—" }}</td>
@@ -74,26 +77,38 @@
         <thead>
             <tr>
                 <th>Name</th>
+                <th>Author(s)</th>
                 {# Category column hidden #}
                 <th>Description</th>
-                <th>Definitions</th>
+                <th>Definition(s)</th>
             </tr>
         </thead>
         <tbody>
             {% for criterion in framework.criteria_list %}
             <tr>
                 <td><strong>{{ criterion.name }}</strong></td>
+                <td>
+                    {% if criterion.author %}
+                        <small style="color: #666;">{{ criterion.author|truncatewords:10 }}</small>
+                    {% elif framework.authors %}
+                        <small style="color: #666;">{{ framework.authors|truncatewords:10 }}</small>
+                    {% else %}
+                        <span style="color: #999;">—</span>
+                    {% endif %}
+                </td>
                 {# Category column hidden #}
                 <td>{{ criterion.description|truncatewords:20|default:"—" }}</td>
                 <td>
                     {% if criterion.definitions.all %}
                         <ul style="margin: 0; padding-left: 1.5rem;">
                             {% for definition in criterion.definitions.all %}
-                            <li style="margin-bottom: 0.5rem;">{{ definition.definition_text|truncatewords:15 }}</li>
+                            <li style="margin-bottom: 0.75rem; line-height: 1.5;">
+                                <span style="color: #555;">{{ definition.definition_text|truncatewords:30 }}</span>
+                            </li>
                             {% endfor %}
                         </ul>
                     {% else %}
-                        —
+                        <span style="color: #999;">—</span>
                     {% endif %}
                 </td>
             </tr>
@@ -107,26 +122,38 @@
         <thead>
             <tr>
                 <th>Name</th>
+                <th>Author(s)</th>
                 {# Category column hidden #}
                 <th>Description</th>
-                <th>Definitions</th>
+                <th>Definition(s)</th>
             </tr>
         </thead>
         <tbody>
             {% for criterion in framework.criteria.all %}
             <tr>
                 <td><strong>{{ criterion.name }}</strong></td>
+                <td>
+                    {% if criterion.author %}
+                        <small style="color: #666;">{{ criterion.author|truncatewords:10 }}</small>
+                    {% elif framework.authors %}
+                        <small style="color: #666;">{{ framework.authors|truncatewords:10 }}</small>
+                    {% else %}
+                        <span style="color: #999;">—</span>
+                    {% endif %}
+                </td>
                 {# Category column hidden #}
                 <td>{{ criterion.description|truncatewords:20|default:"—" }}</td>
                 <td>
                     {% if criterion.definitions.all %}
                         <ul style="margin: 0; padding-left: 1.5rem;">
                             {% for definition in criterion.definitions.all %}
-                            <li style="margin-bottom: 0.5rem;">{{ definition.definition_text|truncatewords:15 }}</li>
+                            <li style="margin-bottom: 0.75rem; line-height: 1.5;">
+                                <span style="color: #555;">{{ definition.definition_text|truncatewords:30 }}</span>
+                            </li>
                             {% endfor %}
                         </ul>
                     {% else %}
-                        —
+                        <span style="color: #999;">—</span>
                     {% endif %}
                 </td>
             </tr>

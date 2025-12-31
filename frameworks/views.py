@@ -186,6 +186,7 @@ def compare_frameworks(request):
                 criterion_rows.append({
                     'has_criterion': True,
                     'description': criterion.description,
+                    'author': criterion.author or framework.authors or '',
                     'category': criterion.category,
                     'definitions': definitions_list,
                 })

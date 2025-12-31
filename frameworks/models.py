@@ -41,6 +41,7 @@ class Criterion(models.Model):
     name = models.CharField(max_length=200, db_index=True, help_text="Name of the criterion (e.g., 'Completeness')")
     framework = models.ForeignKey(Framework, on_delete=models.CASCADE, related_name='criteria')
     description = models.TextField(blank=True, help_text="Description of the criterion")
+    author = models.CharField(max_length=500, blank=True, help_text="Author(s) who defined this criterion (defaults to framework authors)")
     category = models.CharField(max_length=100, blank=True, help_text="Category/group of the criterion")
     order = models.IntegerField(default=0, help_text="Order within the framework")
     created_at = models.DateTimeField(auto_now_add=True)

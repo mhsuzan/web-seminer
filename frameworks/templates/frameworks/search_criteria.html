@@ -37,17 +37,25 @@
             <thead>
                 <tr>
                     <th>Framework</th>
+                    <th>Author(s)</th>
                     <th>Dimensions/Criteria</th>
                     {# Category column hidden #}
                     <th>Description</th>
-                    <th>Definitions</th>
+                    <th>Definition(s)</th>
                     <th>Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for fw_data in result.frameworks %}
                 <tr>
-                    <td><strong>{{ fw_data.framework.name }}</strong></td>
+                    <td><strong>{{ fw_data.framework.name }}</strong><br><small style="color: #666;">{% if fw_data.framework.year %}{{ fw_data.framework.year }}{% endif %}</small></td>
+                    <td>
+                        {% if fw_data.framework.authors %}
+                            <small style="color: #666;">{{ fw_data.framework.authors|truncatewords:8 }}</small>
+                        {% else %}
+                            <span style="color: #999;">—</span>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if fw_data.criteria_keywords %}
                             <span title="{{ fw_data.criteria_keywords }}" style="font-size: 0.9rem; color: #666;">
@@ -63,11 +71,11 @@
                         {% if fw_data.definitions %}
                             <ul style="margin: 0; padding-left: 1.5rem;">
                                 {% for definition in fw_data.definitions %}
-                                <li style="margin-bottom: 0.5rem;">{{ definition|truncatewords:15 }}</li>
+                                <li style="margin-bottom: 0.75rem; line-height: 1.5;">{{ definition|truncatewords:25 }}</li>
                                 {% endfor %}
                             </ul>
                         {% else %}
-                            —
+                            <span style="color: #999;">—</span>
                         {% endif %}
                     </td>
                     <td>

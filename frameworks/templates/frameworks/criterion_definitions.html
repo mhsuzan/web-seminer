@@ -27,6 +27,7 @@
         <thead>
             <tr>
                 <th>Framework</th>
+                <th>Author(s)</th>
                 {# Category column hidden #}
                 <th>Definition</th>
             </tr>
@@ -34,9 +35,16 @@
         <tbody>
             {% for def in definitions %}
             <tr>
-                <td><strong>{{ def.framework.name }}</strong><br><small style="color: #666;">{{ def.framework.year|default:"" }}</small></td>
+                <td><strong>{{ def.framework.name }}</strong><br><small style="color: #666;">{% if def.framework.year %}{{ def.framework.year }}{% endif %}</small></td>
+                <td>
+                    {% if def.framework.authors %}
+                        <small style="color: #666;">{{ def.framework.authors|truncatewords:8 }}</small>
+                    {% else %}
+                        <span style="color: #999;">—</span>
+                    {% endif %}
+                </td>
                 {# Category column hidden #}
-                <td>{{ def.definition }}</td>
+                <td style="line-height: 1.6;">{{ def.definition }}</td>
             </tr>
             {% endfor %}
         </tbody>

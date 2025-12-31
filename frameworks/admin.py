@@ -12,10 +12,11 @@ class FrameworkAdmin(admin.ModelAdmin):
 
 @admin.register(Criterion)
 class CriterionAdmin(admin.ModelAdmin):
-    list_display = ['name', 'framework', 'category', 'order']
+    list_display = ['name', 'framework', 'author', 'category', 'order']
     list_filter = ['framework', 'category']
-    search_fields = ['name', 'description', 'framework__name']
+    search_fields = ['name', 'description', 'author', 'framework__name', 'framework__authors']
     ordering = ['framework', 'order', 'name']
+    readonly_fields = ['created_at', 'updated_at']
 
 
 @admin.register(Definition)

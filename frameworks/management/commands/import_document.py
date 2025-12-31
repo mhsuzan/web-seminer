@@ -313,7 +313,7 @@ class Command(BaseCommand):
         return frameworks_data
 
     def parse_pdf_table(self, table):
-        """Parse PDF table to extract framework data"""
+        """Parse PDF table to extract framework data - handles same structure as DOCX tables"""
         frameworks_data = []
         
         if not table or len(table) == 0:
@@ -321,64 +321,259 @@ class Command(BaseCommand):
         
         # Try to detect header row
         header_row = table[0] if len(table) > 0 else []
-        headers = [str(cell).strip() if cell else '' for cell in header_row]
+        headers = [str(cell).strip().lower() if cell else '' for cell in header_row]
         
-        # Look for common column names
-        framework_col = None
-        criterion_col = None
-        definition_col = None
+        # Find column indices - same structure as DOCX tables
+        title_col = None
+        authors_col = None
+        year_col = None
+        dimensions_col = None
+        definitions_col = None
+        abstract_col = None
+        objectives_col = None
+        methodology_col = None
+        algorithm_col = None
+        top_model_col = None
+        accuracy_col = None
+        advantages_col = None
+        drawbacks_col = None
+        reference_col = None
         
         for i, header in enumerate(headers):
             header_lower = str(header).lower()
-            if 'framework' in header_lower or 'author' in header_lower or 'source' in header_lower:
-                framework_col = i
-            elif 'criterion' in header_lower or 'metric' in header_lower or 'dimension' in header_lower:
-                criterion_col = i
-            elif 'definition' in header_lower or 'description' in header_lower:
-                definition_col = i
+            if 'title' in header_lower:
+                title_col = i
+            elif 'author' in header_lower:
+                authors_col = i
+            elif 'year' in header_lower or 'published' in header_lower:
+                year_col = i
+            elif 'dimension' in header_lower and 'definition' not in header_lower:
+                dimensions_col = i
+            elif 'definition' in header_lower and 'dimension' in header_lower:
+                definitions_col = i
+            elif 'abstract' in header_lower:
+                abstract_col = i
+            elif 'objective' in header_lower:
+                objectives_col = i
+            elif 'methodology' in header_lower:
+                methodology_col = i
+            elif 'algorithm' in header_lower:
+                algorithm_col = i
+            elif 'top model' in header_lower or 'topmodel' in header_lower.replace(' ', ''):
+                top_model_col = i
+            elif 'accuracy' in header_lower:
+                accuracy_col = i
+            elif 'advantage' in header_lower:
+                advantages_col = i
+            elif 'drawback' in header_lower:
+                drawbacks_col = i
+            elif 'reference' in header_lower:
+                reference_col = i
         
-        # Group rows by framework
-        current_framework = None
+        # Parse each data row (one row per framework)
         for row in table[1:]:  # Skip header
             if not row:
                 continue
             
             cells = [str(cell).strip() if cell else '' for cell in row]
             
-            if framework_col is not None and framework_col < len(cells):
-                framework_name = cells[framework_col]
-                if framework_name:
-                    if current_framework:
-                        frameworks_data.append(current_framework)
-                    
-                    # Extract year from framework name if present
-                    year_match = re.search(r'(\d{4})', framework_name)
-                    year = int(year_match.group(1)) if year_match else None
-                    
-                    current_framework = {
-                        'name': framework_name,
-                        'authors': framework_name.split()[0] if framework_name else '',
-                        'year': year,
-                        'title': '',
-                        'description': '',
-                        'source': '',
-                        'criteria': [],
-                    }
+            # Extract framework information
+            title = cells[title_col] if title_col is not None and title_col < len(cells) else ''
+            authors = cells[authors_col] if authors_col is not None and authors_col < len(cells) else ''
+            year_str = cells[year_col] if year_col is not None and year_col < len(cells) else ''
+            dimensions = cells[dimensions_col] if dimensions_col is not None and dimensions_col < len(cells) else ''
+            definitions_text = cells[definitions_col] if definitions_col is not None and definitions_col < len(cells) else ''
+            abstract = cells[abstract_col] if abstract_col is not None and abstract_col < len(cells) else ''
+            objectives = cells[objectives_col] if objectives_col is not None and objectives_col < len(cells) else ''
+            methodology = cells[methodology_col] if methodology_col is not None and methodology_col < len(cells) else ''
+            algorithm_used = cells[algorithm_col] if algorithm_col is not None and algorithm_col < len(cells) else ''
+            top_model = cells[top_model_col] if top_model_col is not None and top_model_col < len(cells) else ''
+            accuracy = cells[accuracy_col] if accuracy_col is not None and accuracy_col < len(cells) else ''
+            advantages = cells[advantages_col] if advantages_col is not None and advantages_col < len(cells) else ''
+            drawbacks = cells[drawbacks_col] if drawbacks_col is not None and drawbacks_col < len(cells) else ''
+            reference = cells[reference_col] if reference_col is not None and reference_col < len(cells) else ''
             
-            if current_framework and criterion_col is not None and criterion_col < len(cells):
-                criterion_name = cells[criterion_col] if criterion_col < len(cells) else ''
-                definition_text = cells[definition_col] if definition_col is not None and definition_col < len(cells) else ''
+            # Skip if title is too short or looks like a document header
+            if not title or len(title) < 5:
+                continue
+            
+            # Skip document headers
+            title_lower = title.lower().strip()
+            if any(title_lower.startswith(prefix) for prefix in ('comprehensive', 'the following', 'table present', 'table ', 'figure ', 'page ')):
+                continue
+            
+            # Skip rows that look like continuation rows or fragments
+            title_words = [w for w in title.split() if w.strip()]
+            
+            # Skip single-word titles unless they're clearly acronyms or proper names
+            if len(title_words) == 1:
+                single_word = title_words[0]
+                # Only allow if it's an acronym (all caps, 2+ chars) or a long proper name
+                if not (single_word.isupper() and len(single_word) >= 2) and len(single_word) < 8:
+                    continue
+            
+            # Skip if title is clearly just a fragment word (common stop words)
+            if title_lower.strip() in ['for', 'to', 'by', 'the', 'a', 'an', 'that', 'this', 'is', 'are', 'was', 'were', 'and', 'or', 'of', 'in', 'on', 'at', 'more', 'remains', 'remains', 'subsequent', 'catalogs', 'eptual', 'focuses', 'itself', 'specifically', 'whether', 'other', 'properties']:
+                continue
+            
+            # Skip if title starts with lowercase preposition/connector (likely a fragment)
+            if title_words and title_words[0].lower() in ['for', 'to', 'by', 'and', 'or', 'the', 'a', 'an', 'that', 'this', 'is', 'are', 'was', 'were', 'of', 'in', 'on', 'at', 'more', 'remains', 'subsequent', 'focuses', 'itself', 'specifically', 'whether', 'other']:
+                continue
+            
+            # Skip if title starts with lowercase and is very short (likely a fragment)
+            if len(title) < 15 and title[0].islower() and title_lower not in ['iso', 'iec']:
+                continue
+            
+            # A valid paper title should start with a capital letter (unless it's an acronym)
+            if title_words and not (title_words[0][0].isupper() or title_words[0].isupper()):
+                continue
+            
+            # Additional validation: check if title looks like abstract text or sentence fragment
+            # Real paper titles usually don't end with common sentence endings unless they're questions
+            if title.rstrip().endswith(('.', ',', ';', ':')) and not title.rstrip().endswith('?'):
+                # Might be a fragment, but allow if it's short and looks like a title
+                if len(title) > 100:
+                    continue
+            
+            # Skip titles that look like they're from the abstract column (contain common abstract phrases)
+            abstract_phrases = ['summarizes', 'identifies', 'proposes', 'presents', 'focuses on', 'aims to', 'intended to', 'designed to']
+            if any(phrase in title_lower for phrase in abstract_phrases) and len(title) > 80:
+                # Likely abstract text, not a title
+                continue
+            
+            # Require at least one other field to be present (year, authors, or abstract)
+            # This helps filter out continuation rows that only have partial data
+            has_year = bool(year_str and year_str.strip())
+            has_authors = bool(authors and authors.strip() and len(authors.strip()) > 3)
+            has_abstract = bool(abstract and abstract.strip() and len(abstract.strip()) > 20)
+            
+            if not (has_year or has_authors or has_abstract):
+                # If we don't have year, authors, or abstract, this is likely a continuation row
+                continue
+            
+            # Skip if title is extremely long without proper structure (likely a parsing error)
+            if len(title) > 300:
+                # Check if it has any structure (capitalization, punctuation)
+                if not any(c.isupper() for c in title[:50]):
+                    continue
+            
+            # Extract year
+            year = None
+            if year_str:
+                year_match = re.search(r'(\d{4})', year_str)
+                if year_match:
+                    try:
+                        year = int(year_match.group(1))
+                    except ValueError:
+                        pass
+            
+            # If no year found in year column, try to extract from title
+            if not year:
+                year_match = re.search(r'\((\d{4})\)', title)
+                if year_match:
+                    try:
+                        year = int(year_match.group(1))
+                    except ValueError:
+                        pass
+            
+            # Parse dimensions/criteria and their definitions (same logic as DOCX parser)
+            criteria = []
+            if dimensions:
+                # Normalize the dimensions string
+                dimensions_normalized = re.sub(r'\s+', ' ', dimensions)
+                dimensions_normalized = re.sub(r'\b(Syntactic|Semantic|Representational)\s+([A-Z][a-z]+)', r'\1 \2', dimensions_normalized)
+                dim_list = re.split(r'[,;\n]+', dimensions_normalized)
                 
-                if criterion_name:
-                    current_framework['criteria'].append({
-                        'name': criterion_name,
-                        'description': definition_text,
-                        'category': '',
-                        'definitions': [definition_text] if definition_text else [],
-                    })
-        
-        if current_framework:
-            frameworks_data.append(current_framework)
+                # Parse definitions text
+                dimension_definitions = {}
+                if definitions_text:
+                    def_lines = definitions_text.split('\n')
+                    current_dim = None
+                    current_def = []
+                    
+                    for line in def_lines:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        
+                        dim_match = re.match(r'^([A-Z][a-zA-Z\s-]+?):\s*(.*)$', line)
+                        if dim_match:
+                            if current_dim and current_def:
+                                dimension_definitions[current_dim.lower()] = ' '.join(current_def).strip()
+                            current_dim = dim_match.group(1).strip()
+                            current_def = [dim_match.group(2).strip()] if dim_match.group(2).strip() else []
+                        else:
+                            if current_dim:
+                                current_def.append(line)
+                            else:
+                                for dim_name in dim_list:
+                                    dim_clean = dim_name.strip()
+                                    if dim_clean and line.startswith(dim_clean):
+                                        if current_dim and current_def:
+                                            dimension_definitions[current_dim.lower()] = ' '.join(current_def).strip()
+                                        current_dim = dim_clean
+                                        current_def = [line[len(dim_clean):].strip().lstrip(':').strip()]
+                                        break
+                    
+                    if current_dim and current_def:
+                        dimension_definitions[current_dim.lower()] = ' '.join(current_def).strip()
+                
+                seen_dimensions = set()
+                
+                for dim in dim_list:
+                    dim = dim.strip()
+                    if dim and len(dim) > 2 and dim.lower() not in ['n/a', 'na', 'read', 'and', 'or', 'the', 'none', 'null']:
+                        dim_original = dim
+                        dim = re.sub(r'^(Syntactic|Semantic|Representational)[\s-]+', '', dim, flags=re.IGNORECASE)
+                        dim = dim.rstrip('.-()[]').strip()
+                        
+                        if dim and len(dim) > 2 and not re.match(r'^[\d\s]+$', dim):
+                            dim = dim[0].upper() + dim[1:] if len(dim) > 1 else dim
+                            
+                            dim_lower = dim.lower()
+                            if dim_lower not in seen_dimensions:
+                                seen_dimensions.add(dim_lower)
+                                
+                                definition_text = None
+                                if dim_lower in dimension_definitions:
+                                    definition_text = dimension_definitions[dim_lower]
+                                else:
+                                    for def_dim, def_text in dimension_definitions.items():
+                                        if dim_lower in def_dim or def_dim in dim_lower:
+                                            definition_text = def_text
+                                            break
+                                
+                                if not definition_text:
+                                    definition_text = abstract if abstract else f"Quality dimension from {title}"
+                                    if year:
+                                        definition_text += f" ({year})"
+                                
+                                criteria.append({
+                                    'name': dim,
+                                    'description': definition_text,
+                                    'category': '',
+                                    'definitions': [definition_text],
+                                })
+            
+            # Create framework entry
+            framework_data = {
+                'name': title,
+                'authors': authors.strip() if authors else '',
+                'year': year,
+                'title': title,
+                'description': abstract if abstract else '',
+                'objectives': objectives if objectives else '',
+                'methodology': methodology if methodology else '',
+                'algorithm_used': algorithm_used if algorithm_used else '',
+                'top_model': top_model if top_model else '',
+                'accuracy': accuracy if accuracy else '',
+                'advantages': advantages if advantages else '',
+                'drawbacks': drawbacks if drawbacks else '',
+                'source': reference if reference else '',
+                'criteria': criteria,
+            }
+            
+            frameworks_data.append(framework_data)
         
         return frameworks_data
 
@@ -492,8 +687,10 @@ class Command(BaseCommand):
         
         # Find column indices for our specific table structure
         title_col = None
+        authors_col = None
         year_col = None
         dimensions_col = None
+        definitions_col = None
         abstract_col = None
         objectives_col = None
         methodology_col = None
@@ -507,10 +704,14 @@ class Command(BaseCommand):
         for i, header in enumerate(headers):
             if 'title' in header:
                 title_col = i
+            elif 'author' in header:
+                authors_col = i
             elif 'year' in header or 'published' in header:
                 year_col = i
-            elif 'dimension' in header:
+            elif 'dimension' in header and 'definition' not in header:
                 dimensions_col = i
+            elif 'definition' in header and 'dimension' in header:
+                definitions_col = i
             elif 'abstract' in header:
                 abstract_col = i
             elif 'objective' in header:
@@ -537,8 +738,10 @@ class Command(BaseCommand):
             
             # Extract framework information
             title = cells[title_col] if title_col is not None and title_col < len(cells) else ''
+            authors = cells[authors_col] if authors_col is not None and authors_col < len(cells) else ''
             year_str = cells[year_col] if year_col is not None and year_col < len(cells) else ''
             dimensions = cells[dimensions_col] if dimensions_col is not None and dimensions_col < len(cells) else ''
+            definitions_text = cells[definitions_col] if definitions_col is not None and definitions_col < len(cells) else ''
             abstract = cells[abstract_col] if abstract_col is not None and abstract_col < len(cells) else ''
             objectives = cells[objectives_col] if objectives_col is not None and objectives_col < len(cells) else ''
             methodology = cells[methodology_col] if methodology_col is not None and methodology_col < len(cells) else ''
@@ -580,9 +783,64 @@ class Command(BaseCommand):
                 continue
             
             # Skip document headers
-            title_lower = title.lower()
+            title_lower = title.lower().strip()
             if any(title_lower.startswith(prefix) for prefix in ('comprehensive', 'the following', 'table present', 'table ', 'figure ', 'page ')):
                 continue
+            
+            # Skip rows that look like continuation rows or fragments
+            title_words = [w for w in title.split() if w.strip()]
+            
+            # Skip single-word titles unless they're clearly acronyms or proper names
+            if len(title_words) == 1:
+                single_word = title_words[0]
+                # Only allow if it's an acronym (all caps, 2+ chars) or a long proper name
+                if not (single_word.isupper() and len(single_word) >= 2) and len(single_word) < 8:
+                    continue
+            
+            # Skip if title is clearly just a fragment word (common stop words)
+            if title_lower.strip() in ['for', 'to', 'by', 'the', 'a', 'an', 'that', 'this', 'is', 'are', 'was', 'were', 'and', 'or', 'of', 'in', 'on', 'at', 'more', 'remains', 'remains', 'subsequent', 'catalogs', 'eptual', 'focuses', 'itself', 'specifically', 'whether', 'other', 'properties']:
+                continue
+            
+            # Skip if title starts with lowercase preposition/connector (likely a fragment)
+            if title_words and title_words[0].lower() in ['for', 'to', 'by', 'and', 'or', 'the', 'a', 'an', 'that', 'this', 'is', 'are', 'was', 'were', 'of', 'in', 'on', 'at', 'more', 'remains', 'subsequent', 'focuses', 'itself', 'specifically', 'whether', 'other']:
+                continue
+            
+            # Skip if title starts with lowercase and is very short (likely a fragment)
+            if len(title) < 15 and title[0].islower() and title_lower not in ['iso', 'iec']:
+                continue
+            
+            # A valid paper title should start with a capital letter (unless it's an acronym)
+            if title_words and not (title_words[0][0].isupper() or title_words[0].isupper()):
+                continue
+            
+            # Additional validation: check if title looks like abstract text or sentence fragment
+            # Real paper titles usually don't end with common sentence endings unless they're questions
+            if title.rstrip().endswith(('.', ',', ';', ':')) and not title.rstrip().endswith('?'):
+                # Might be a fragment, but allow if it's short and looks like a title
+                if len(title) > 100:
+                    continue
+            
+            # Skip titles that look like they're from the abstract column (contain common abstract phrases)
+            abstract_phrases = ['summarizes', 'identifies', 'proposes', 'presents', 'focuses on', 'aims to', 'intended to', 'designed to']
+            if any(phrase in title_lower for phrase in abstract_phrases) and len(title) > 80:
+                # Likely abstract text, not a title
+                continue
+            
+            # Require at least one other field to be present (year, authors, or abstract)
+            # This helps filter out continuation rows that only have partial data
+            has_year = bool(year_str and year_str.strip())
+            has_authors = bool(authors and authors.strip() and len(authors.strip()) > 3)
+            has_abstract = bool(abstract and abstract.strip() and len(abstract.strip()) > 20)
+            
+            if not (has_year or has_authors or has_abstract):
+                # If we don't have year, authors, or abstract, this is likely a continuation row
+                continue
+            
+            # Skip if title is extremely long without proper structure (likely a parsing error)
+            if len(title) > 300:
+                # Check if it has any structure (capitalization, punctuation)
+                if not any(c.isupper() for c in title[:50]):
+                    continue
             
             # Extract year
             year = None
@@ -603,37 +861,32 @@ class Command(BaseCommand):
                     except ValueError:
                         pass
             
-            # Extract authors from title or reference
-            # Since reference column just says "Read", we'll try to extract from title
-            # or leave empty if title doesn't contain author info
-            authors = ''
-            
-            # Try reference column first (though it usually just says "Read")
-            if reference and reference.lower() != 'read':
-                author_match = re.search(r'^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+et\s+al\.)?)', reference)
-                if author_match:
-                    authors = author_match.group(1).strip()
-            
-            # If no authors from reference, try title patterns
-            if not authors and title:
-                # Look for common author patterns in titles
-                # Pattern: "Author et al. - Title" or "Author: Title"
-                title_clean = re.sub(r'\s*\(?\d{4}\)?', '', title)
+            # Use authors from authors column if available, otherwise try to extract from other sources
+            if not authors:
+                # Try reference column first (though it usually just says "Read")
+                if reference and reference.lower() != 'read':
+                    author_match = re.search(r'^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+et\s+al\.)?)', reference)
+                    if author_match:
+                        authors = author_match.group(1).strip()
                 
-                # Check if title starts with what looks like an author name (short, capitalized words)
-                parts = re.split(r'[:\-–]', title_clean, 1)
-                if parts and len(parts) > 0:
-                    first_part = parts[0].strip()
-                    words = first_part.split()
-                    # If first part is short (likely author), use it
-                    if len(words) <= 4 and len(first_part) < 50:
-                        # Check if it looks like an author name (starts with capital, has 2-4 words)
-                        if all(w[0].isupper() if w else False for w in words[:2]):
-                            authors = first_part
-                
-                # If still no authors, leave empty (will be stored as empty string)
+                # If no authors from reference, try title patterns
+                if not authors and title:
+                    # Look for common author patterns in titles
+                    # Pattern: "Author et al. - Title" or "Author: Title"
+                    title_clean = re.sub(r'\s*\(?\d{4}\)?', '', title)
+                    
+                    # Check if title starts with what looks like an author name (short, capitalized words)
+                    parts = re.split(r'[:\-–]', title_clean, 1)
+                    if parts and len(parts) > 0:
+                        first_part = parts[0].strip()
+                        words = first_part.split()
+                        # If first part is short (likely author), use it
+                        if len(words) <= 4 and len(first_part) < 50:
+                            # Check if it looks like an author name (starts with capital, has 2-4 words)
+                            if all(w[0].isupper() if w else False for w in words[:2]):
+                                authors = first_part
             
-            # Parse dimensions/criteria
+            # Parse dimensions/criteria and their definitions
             criteria = []
             if dimensions:
                 # Normalize the dimensions string - replace newlines with spaces first
@@ -646,6 +899,50 @@ class Command(BaseCommand):
                 # Split by comma, semicolon, or newline
                 dim_list = re.split(r'[,;\n]+', dimensions_normalized)
                 
+                # Parse definitions text to create a mapping of dimension name to definition
+                dimension_definitions = {}
+                if definitions_text:
+                    # Definitions are typically in format: "Dimension Name: Definition text..."
+                    # Split by common patterns like "Dimension Name:" or newlines followed by dimension names
+                    def_lines = definitions_text.split('\n')
+                    current_dim = None
+                    current_def = []
+                    
+                    for line in def_lines:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        
+                        # Check if line starts with a dimension name followed by colon
+                        # Pattern: "Dimension Name:" or "Dimension Name: Definition"
+                        dim_match = re.match(r'^([A-Z][a-zA-Z\s-]+?):\s*(.*)$', line)
+                        if dim_match:
+                            # Save previous dimension definition if exists
+                            if current_dim and current_def:
+                                dimension_definitions[current_dim.lower()] = ' '.join(current_def).strip()
+                            
+                            # Start new dimension
+                            current_dim = dim_match.group(1).strip()
+                            current_def = [dim_match.group(2).strip()] if dim_match.group(2).strip() else []
+                        else:
+                            # Continuation of current definition
+                            if current_dim:
+                                current_def.append(line)
+                            else:
+                                # Try to find dimension name at start of line
+                                for dim_name in dim_list:
+                                    dim_clean = dim_name.strip()
+                                    if dim_clean and line.startswith(dim_clean):
+                                        if current_dim and current_def:
+                                            dimension_definitions[current_dim.lower()] = ' '.join(current_def).strip()
+                                        current_dim = dim_clean
+                                        current_def = [line[len(dim_clean):].strip().lstrip(':').strip()]
+                                        break
+                    
+                    # Save last dimension definition
+                    if current_dim and current_def:
+                        dimension_definitions[current_dim.lower()] = ' '.join(current_def).strip()
+                
                 seen_dimensions = set()  # Avoid duplicates
                 
                 for dim in dim_list:
@@ -653,6 +950,7 @@ class Command(BaseCommand):
                     # Filter out very short strings and common non-dimension words
                     if dim and len(dim) > 2 and dim.lower() not in ['n/a', 'na', 'read', 'and', 'or', 'the', 'none', 'null']:
                         # Clean up common prefixes that might be split across lines
+                        dim_original = dim
                         dim = re.sub(r'^(Syntactic|Semantic|Representational)[\s-]+', '', dim, flags=re.IGNORECASE)
                         # Remove trailing periods, dashes, and parentheses
                         dim = dim.rstrip('.-()[]').strip()
@@ -666,10 +964,25 @@ class Command(BaseCommand):
                             dim_lower = dim.lower()
                             if dim_lower not in seen_dimensions:
                                 seen_dimensions.add(dim_lower)
-                                # Use abstract or description if available for better definition
-                                definition_text = abstract if abstract else f"Quality dimension from {title}"
-                                if year:
-                                    definition_text += f" ({year})"
+                                
+                                # Find matching definition from definitions_text
+                                definition_text = None
+                                
+                                # Try exact match first
+                                if dim_lower in dimension_definitions:
+                                    definition_text = dimension_definitions[dim_lower]
+                                else:
+                                    # Try partial match (dimension name might be slightly different)
+                                    for def_dim, def_text in dimension_definitions.items():
+                                        if dim_lower in def_dim or def_dim in dim_lower:
+                                            definition_text = def_text
+                                            break
+                                
+                                # Fallback to abstract or default description
+                                if not definition_text:
+                                    definition_text = abstract if abstract else f"Quality dimension from {title}"
+                                    if year:
+                                        definition_text += f" ({year})"
                                 
                                 criteria.append({
                                     'name': dim,
@@ -906,12 +1219,17 @@ class Command(BaseCommand):
                         if not criterion.category or criterion.category.strip() != criterion_data['category'].strip():
                             criterion.category = criterion_data['category'].strip()
                             criterion.save()
+                    # Update author if not set or if framework author is available
+                    if not criterion.author and framework.authors:
+                        criterion.author = framework.authors.strip()
+                        criterion.save()
                 else:
-                    # Create new criterion
+                    # Create new criterion with author from framework
                     criterion = Criterion.objects.create(
                         framework=framework,
                         name=normalized_name,
                         description=criterion_data.get('description', '').strip(),
+                        author=framework.authors.strip() if framework.authors else '',
                         category=criterion_data.get('category', '').strip(),
                         order=idx,
                     )

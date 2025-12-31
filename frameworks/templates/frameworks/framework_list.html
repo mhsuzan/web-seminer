@@ -12,7 +12,7 @@
         <thead>
             <tr>
                 <th>Framework Name</th>
-                {# Authors column hidden #}
+                <th>Author(s)</th>
                 <th>Year</th>
                 <th>Dimensions/Criteria</th>
                 <th>Criteria Count</th>
@@ -23,7 +23,13 @@
             {% for framework in frameworks %}
             <tr>
                 <td><strong>{{ framework.name }}</strong></td>
-                {# Authors column hidden #}
+                <td>
+                    {% if framework.authors %}
+                        <small style="color: #666;">{{ framework.authors|truncatewords:8 }}</small>
+                    {% else %}
+                        <span style="color: #999;">—</span>
+                    {% endif %}
+                </td>
                 <td>{{ framework.year|default:"—" }}</td>
                 <td>
                     {% if framework.criteria_names_display %}
@@ -39,7 +45,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" style="text-align: center; padding: 2rem;">
+                <td colspan="6" style="text-align: center; padding: 2rem;">
                     No frameworks available. Import data to get started.
                 </td>
             </tr>

@@ -255,7 +255,10 @@
                     {% for framework in selected_frameworks %}
                     <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd; min-width: 300px;">
                         {{ framework.name }}<br>
-                        <small style="color: #666; font-weight: normal;">{% if framework.year %}{{ framework.year }}{% endif %}</small>
+                        <small style="color: #666; font-weight: normal;">
+                            {% if framework.authors %}{{ framework.authors|truncatewords:8 }}{% endif %}
+                            {% if framework.year %} ({{ framework.year }}){% endif %}
+                        </small>
                     </th>
                     {% endfor %}
                 </tr>
@@ -279,6 +282,11 @@
                             
                             {# Always show framework-specific details #}
                             {# Category hidden #}
+                            {% if fw_data.author %}
+                                <br><small style="color: #888; display: block; margin-top: 0.25rem; font-style: italic;">
+                                    <strong>Author(s):</strong> {{ fw_data.author|truncatewords:10 }}
+                                </small>
+                            {% endif %}
                             {% if fw_data.description %}
                                 <br><small style="color: #666; display: block; margin-top: 0.25rem;">
                                     <strong>Description:</strong> {{ fw_data.description|truncatewords:30 }}
@@ -289,7 +297,7 @@
                                     <strong>Definition{% if fw_data.definitions|length > 1 %}s{% endif %}:</strong> 
                                     <ul style="margin: 0.25rem 0 0 0; padding-left: 1.2rem; font-size: 0.9em;">
                                         {% for def in fw_data.definitions|slice:":3" %}
-                                            <li style="margin-bottom: 0.25rem;">{{ def|truncatewords:20 }}</li>
+                                            <li style="margin-bottom: 0.5rem; line-height: 1.4;">{{ def|truncatewords:25 }}</li>
                                         {% endfor %}
                                     </ul>
                                 </small>
