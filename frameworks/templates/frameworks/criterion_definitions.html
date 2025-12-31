@@ -30,6 +30,7 @@
                 <th>Author(s)</th>
                 {# Category column hidden #}
                 <th>Definition</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -45,6 +46,9 @@
                 </td>
                 {# Category column hidden #}
                 <td style="line-height: 1.6;">{{ def.definition }}</td>
+                <td>
+                    <a href="{% url 'frameworks:framework_detail' def.framework.id %}" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; text-decoration: none; display: inline-block;">View Framework</a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

@@ -1,4 +1,5 @@
 import logging
+from collections import Counter, defaultdict
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Q, Count, Prefetch
 from django.http import JsonResponse
@@ -246,38 +247,27 @@ def compare_frameworks(request):
     # Enhance comparison with LLM if available - AUTO-ENABLE by default
     llm_enhancement = None
     try:
-        # Check if LLM enhancement is requested (default to true, can be disabled with llm=false)
         use_llm = request.GET.get('llm', 'true').lower() != 'false'
-        logger.info(f"LLM enhancement requested: {use_llm}")
         if use_llm:
-            logger.info("Starting LLM enhancement process...")
             import time
             enhancement_start = time.time()
             try:
                 llm_enhancement = enhance_comparison_with_llm(comparison_data, selected_frameworks)
-                enhancement_time = time.time() - enhancement_start
-                logger.info(f"LLM enhancement completed in {enhancement_time:.2f}s")
-                # Update comparison_data with enhanced version
                 if llm_enhancement and llm_enhancement.get('enhanced'):
                     comparison_data = llm_enhancement.get('comparison_data', comparison_data)
-                    logger.info("Comparison data updated with LLM enhancements")
                 else:
                     error_msg = llm_enhancement.get('error', 'Unknown error') if llm_enhancement else 'No result'
-                    logger.warning(f"LLM enhancement failed: {error_msg}")
-                    # Set proper error message for display
                     if not llm_enhancement:
                         llm_enhancement = {'enhanced': False, 'error': 'LLM provider not available'}
                     elif not llm_enhancement.get('error'):
                         llm_enhancement['error'] = error_msg
             except Exception as e:
-                enhancement_time = time.time() - enhancement_start
-                logger.error(f"Error in LLM enhancement after {enhancement_time:.2f}s: {e}", exc_info=True)
+                logger.error(f"Error in LLM enhancement: {e}", exc_info=True)
                 llm_enhancement = {'enhanced': False, 'error': str(e), 'provider': 'none'}
         else:
-            logger.info("LLM enhancement disabled by user request")
             llm_enhancement = {'enhanced': False, 'disabled': True}
     except Exception as e:
-        logger.error(f"Unexpected error in LLM enhancement: {e}", exc_info=True)
+        logger.error(f"Error in LLM enhancement: {e}", exc_info=True)
         llm_enhancement = {'enhanced': False, 'error': str(e), 'provider': 'none'}
     
     context = {
@@ -407,8 +397,28 @@ def criterion_definitions(request):
     """Compare definitions of a specific criterion across frameworks"""
     criterion_name = request.GET.get('criterion', '').strip()
     
+    all_criteria_names = list(Criterion.objects.values_list('name', flat=True).distinct())
+    name_variants = defaultdict(list)
+    
+    for name in all_criteria_names:
+        normalized = name.lower().strip()
+        name_variants[normalized].append(name)
+    
+    all_variant_counts = Counter(
+        Criterion.objects.values_list('name', flat=True)
+    )
+    
+    criteria_names = []
+    for normalized, variants in sorted(name_variants.items()):
+        if len(variants) > 1:
+            most_common = max(variants, key=lambda v: all_variant_counts.get(v, 0))
+            criteria_names.append(most_common)
+        else:
+            criteria_names.append(variants[0])
+    
+    criteria_names = sorted(criteria_names, key=lambda x: x.lower())
+    
     if not criterion_name:
-        criteria_names = Criterion.objects.values_list('name', flat=True).distinct().order_by('name')
         return render(request, 'frameworks/criterion_definitions.html', {
             'criterion_name': '',
             'criteria_names': criteria_names,
@@ -440,7 +450,7 @@ def criterion_definitions(request):
     
     context = {
         'criterion_name': criterion_name,
-        'criteria_names': Criterion.objects.values_list('name', flat=True).distinct().order_by('name'),
+        'criteria_names': criteria_names,
         'definitions': definitions_data,
     }
     return render(request, 'frameworks/criterion_definitions.html', context)
@@ -554,43 +564,19 @@ def source_edit_framework(request, framework_id):
 
 def edit_framework(request, framework_id):
     """Edit all fields of a framework"""
-    logger.info(f"=== EDIT FRAMEWORK REQUEST START ===")
-    logger.info(f"Framework ID: {framework_id}, Method: {request.method}")
-    logger.info(f"User: {request.user if hasattr(request, 'user') else 'Anonymous'}")
-    logger.info(f"IP Address: {request.META.get('REMOTE_ADDR', 'Unknown')}")
-    
     try:
         framework = get_object_or_404(Framework, id=framework_id)
-        logger.info(f"Framework found: {framework.name} (ID: {framework.id})")
     except Exception as e:
         logger.error(f"Error getting framework {framework_id}: {str(e)}", exc_info=True)
         raise
     
     if request.method == 'POST':
-        # Check if this is an AJAX request
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-        logger.info(f"Is AJAX request: {is_ajax}")
-        logger.info(f"POST data keys: {list(request.POST.keys())}")
-        
-        # Log all POST data (excluding sensitive info)
-        post_data = {}
-        for key in request.POST.keys():
-            value = request.POST.get(key, '')
-            # Truncate long values for logging
-            if len(value) > 200:
-                post_data[key] = value[:200] + "... (truncated)"
-            else:
-                post_data[key] = value
-        logger.info(f"POST data: {post_data}")
         
         try:
-            # Update all framework fields
             name = request.POST.get('name', '').strip()
-            logger.info(f"Processing name field: '{name}' (length: {len(name)})")
-            
             if not name:
                 error_msg = 'Framework name is required'
-                logger.warning(f"Validation failed: {error_msg}")
                 if is_ajax:
                     return JsonResponse({'success': False, 'message': error_msg}, status=400)
                 messages.error(request, error_msg)
@@ -600,26 +586,19 @@ def edit_framework(request, framework_id):
             framework.authors = request.POST.get('authors', '').strip()
             
             year_str = request.POST.get('year', '').strip()
-            logger.info(f"Processing year field: '{year_str}'")
             if year_str:
                 try:
                     year_value = int(year_str)
-                    logger.info(f"Year parsed as integer: {year_value}")
-                    # Validate year range
                     if year_value < 1900 or year_value > 2100:
                         error_msg = 'Year must be between 1900 and 2100'
-                        logger.warning(f"Validation failed: {error_msg} (year: {year_value})")
                         if is_ajax:
                             return JsonResponse({'success': False, 'message': error_msg}, status=400)
                         messages.error(request, error_msg)
                         return redirect('frameworks:framework_list')
                     framework.year = year_value
-                    logger.info(f"Year set to: {framework.year}")
-                except ValueError as ve:
-                    logger.warning(f"Year conversion failed: {str(ve)}, setting to None")
+                except ValueError:
                     framework.year = None
             else:
-                logger.info("Year field empty, setting to None")
                 framework.year = None
             
             framework.title = request.POST.get('title', '').strip()
@@ -633,70 +612,41 @@ def edit_framework(request, framework_id):
             framework.drawbacks = request.POST.get('drawbacks', '').strip()
             framework.source = request.POST.get('source', '').strip()
             
-            logger.info("All fields updated, starting validation...")
-            
-            # Validate and save
-            try:
-                framework.full_clean()
-                logger.info("Model validation (full_clean) passed")
-            except ValidationError as ve:
-                logger.error(f"Model validation failed: {str(ve)}", exc_info=True)
-                raise
-            
-            try:
-                framework.save()
-                logger.info(f"Framework saved successfully: {framework.name} (ID: {framework.id})")
-            except Exception as save_error:
-                logger.error(f"Error saving framework: {str(save_error)}", exc_info=True)
-                raise
-            
+            framework.full_clean()
+            framework.save()
             messages.success(request, f'Framework "{framework.name}" updated successfully')
-            logger.info("Success message added")
             
-            # Return JSON response for AJAX requests
             if is_ajax:
-                logger.info("Returning JSON success response")
                 return JsonResponse({'success': True, 'message': 'Framework updated successfully'})
             
-            logger.info("Redirecting to framework_list")
             return redirect('frameworks:framework_list')
         
         except ValidationError as e:
-            # Handle Django validation errors
-            logger.error(f"ValidationError caught: {str(e)}", exc_info=True)
-            
             if hasattr(e, 'message_dict'):
                 error_msg = '; '.join([f"{k}: {', '.join(v)}" for k, v in e.message_dict.items()])
-                logger.error(f"Validation error details (message_dict): {e.message_dict}")
             elif hasattr(e, 'messages'):
                 error_msg = '; '.join(e.messages)
-                logger.error(f"Validation error messages: {e.messages}")
             else:
                 error_msg = str(e)
             
-            logger.error(f"Final error message: {error_msg}")
+            logger.error(f"Validation error in edit_framework: {error_msg}", exc_info=True)
             
             if is_ajax:
-                logger.info("Returning JSON error response for ValidationError")
                 return JsonResponse({'success': False, 'message': f'Validation error: {error_msg}'}, status=400)
             
             messages.error(request, f'Validation error: {error_msg}')
             return redirect('frameworks:framework_list')
         except Exception as e:
-            # Handle other exceptions
-            logger.error(f"Unexpected exception in edit_framework: {type(e).__name__}: {str(e)}", exc_info=True)
+            logger.error(f"Error updating framework: {str(e)}", exc_info=True)
             error_msg = str(e)
             
             if is_ajax:
-                logger.info("Returning JSON error response for Exception")
                 return JsonResponse({'success': False, 'message': f'Error updating framework: {error_msg}'}, status=500)
             
             messages.error(request, f'Error updating framework: {error_msg}')
             return redirect('frameworks:framework_list')
     
-    # GET request - return framework data as JSON for modal
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        logger.info("GET request for framework data (AJAX)")
         framework_data = {
             'id': framework.id,
             'name': framework.name,
@@ -713,11 +663,8 @@ def edit_framework(request, framework_id):
             'drawbacks': framework.drawbacks or '',
             'source': framework.source or '',
         }
-        logger.info(f"Returning framework data for ID {framework.id}: {framework.name}")
         return JsonResponse(framework_data)
     
-    # Regular GET request - render edit page
-    logger.info("GET request for framework edit page (non-AJAX)")
     context = {
         'framework': framework,
     }
