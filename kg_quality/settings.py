@@ -26,10 +26,12 @@ SECRET_KEY = 'django-insecure-d@5h!y!2s)c-ncf7@n!ru_fwrt$+=o@8^qo$lsi!56-^k3usbn
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['seminar.codinzy.com', 'codinzy.com', 'localhost', '127.0.0.1', '172.18.0.1', '172.18.0.10']
+ALLOWED_HOSTS = ['seminer.codinzy.com', 'seminar.codinzy.com', 'codinzy.com', 'localhost', '127.0.0.1', '172.18.0.1', '172.18.0.10']
 
 # CSRF trusted origins for HTTPS
 CSRF_TRUSTED_ORIGINS = [
+    'https://seminer.codinzy.com',
+    'http://seminer.codinzy.com',
     'https://seminar.codinzy.com',
     'http://seminar.codinzy.com',
     'https://codinzy.com',

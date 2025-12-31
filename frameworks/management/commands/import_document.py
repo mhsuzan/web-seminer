@@ -204,12 +204,8 @@ class Command(BaseCommand):
                         if tables:
                             tables_data.extend(tables)
                     
-                    # Parse text content
-                    full_text = '\n'.join(all_text)
-                    frameworks_from_text = self.parse_text_content(full_text)
-                    frameworks_data.extend(frameworks_from_text)
-                    
-                    # Parse tables
+                    # Only parse tables (text content parsing disabled to avoid importing invalid frameworks)
+                    # The table parser has S.N filtering to ensure we only get the 35 valid frameworks
                     for table in tables_data:
                         frameworks_from_table = self.parse_pdf_table(table)
                         frameworks_data.extend(frameworks_from_table)
@@ -319,11 +315,25 @@ class Command(BaseCommand):
         if not table or len(table) == 0:
             return frameworks_data
         
-        # Try to detect header row
+        # Try to detect header row - it might be in the first row or we might need to skip it
+        # For PDFs, headers might be on a previous page, so check if first row looks like headers
         header_row = table[0] if len(table) > 0 else []
         headers = [str(cell).strip().lower() if cell else '' for cell in header_row]
         
+        # If first row doesn't look like headers (contains S.N values 1-36), it might be data
+        first_cell = str(header_row[0]).strip().replace('\n', '').replace(' ', '').replace('.', '') if header_row and len(header_row) > 0 else ''
+        has_header = False
+        if first_cell and not first_cell.isdigit():
+            # First row looks like headers
+            has_header = True
+            start_row = 1
+        else:
+            # First row might be data, no headers in this table fragment
+            has_header = False
+            start_row = 0
+        
         # Find column indices - same structure as DOCX tables
+        sn_col = None
         title_col = None
         authors_col = None
         year_col = None
@@ -341,7 +351,9 @@ class Command(BaseCommand):
         
         for i, header in enumerate(headers):
             header_lower = str(header).lower()
-            if 'title' in header_lower:
+            if 's.n' in header_lower or 's\\n' in header_lower or header_lower == 's.':
+                sn_col = i
+            elif 'title' in header_lower:
                 title_col = i
             elif 'author' in header_lower:
                 authors_col = i
@@ -371,13 +383,34 @@ class Command(BaseCommand):
                 reference_col = i
         
         # Parse each data row (one row per framework)
-        for row in table[1:]:  # Skip header
+        for row in table[start_row:]:  # Skip header if present
             if not row:
                 continue
             
             cells = [str(cell).strip() if cell else '' for cell in row]
             
+            # First, check if this row has a valid S.N (first column usually contains S.N)
+            # Only import rows with valid S.N (1-36 for the 35 frameworks)
+            # This is the PRIMARY filter to get only the 35 valid frameworks
+            first_col = cells[0] if len(cells) > 0 else ''
+            sn_str = str(first_col).strip().replace('\n', '').replace(' ', '').replace('.', '')
+            has_valid_sn = False
+            sn_value = None
+            if sn_str and sn_str.isdigit():
+                try:
+                    sn_value = int(sn_str)
+                    if 1 <= sn_value <= 36:
+                        has_valid_sn = True
+                except ValueError:
+                    pass
+            
+            # CRITICAL: Skip rows without valid S.N (filters out continuation rows and invalid entries)
+            # This ensures we only get the 35 frameworks from the PDF
+            if not has_valid_sn:
+                continue
+            
             # Extract framework information
+            sn_value = cells[sn_col] if sn_col is not None and sn_col < len(cells) else first_col
             title = cells[title_col] if title_col is not None and title_col < len(cells) else ''
             authors = cells[authors_col] if authors_col is not None and authors_col < len(cells) else ''
             year_str = cells[year_col] if year_col is not None and year_col < len(cells) else ''
@@ -686,6 +719,7 @@ class Command(BaseCommand):
         headers = [cell.text.strip().lower() for cell in header_row.cells]
         
         # Find column indices for our specific table structure
+        sn_col = None
         title_col = None
         authors_col = None
         year_col = None
@@ -702,7 +736,10 @@ class Command(BaseCommand):
         reference_col = None
         
         for i, header in enumerate(headers):
-            if 'title' in header:
+            header_lower = header.lower()
+            if 's.n' in header_lower or 's\\n' in header_lower or header_lower == 's.':
+                sn_col = i
+            elif 'title' in header:
                 title_col = i
             elif 'author' in header:
                 authors_col = i
@@ -737,6 +774,7 @@ class Command(BaseCommand):
             cells = [cell.text.strip() for cell in row.cells]
             
             # Extract framework information
+            sn_value = cells[sn_col] if sn_col is not None and sn_col < len(cells) else ''
             title = cells[title_col] if title_col is not None and title_col < len(cells) else ''
             authors = cells[authors_col] if authors_col is not None and authors_col < len(cells) else ''
             year_str = cells[year_col] if year_col is not None and year_col < len(cells) else ''
@@ -750,6 +788,67 @@ class Command(BaseCommand):
             accuracy = cells[accuracy_col] if accuracy_col is not None and accuracy_col < len(cells) else ''
             advantages = cells[advantages_col] if advantages_col is not None and advantages_col < len(cells) else ''
             drawbacks = cells[drawbacks_col] if drawbacks_col is not None and drawbacks_col < len(cells) else ''
+            
+            # Only import rows with valid S.N (1-36 for the 35 frameworks)
+            # This filters out continuation rows and invalid entries
+            # For DOCX files, if we have S.N, we trust it and skip other validations
+            has_valid_sn = False
+            if sn_col is not None:
+                sn_str = str(sn_value).strip().replace('\n', '').replace(' ', '').replace('.', '')
+                if sn_str and sn_str.isdigit():
+                    try:
+                        sn = int(sn_str)
+                        if 1 <= sn <= 36:
+                            has_valid_sn = True
+                    except ValueError:
+                        pass
+            
+            # If we have a valid S.N, skip strict validation (trust the table structure)
+            # This ensures we import all frameworks from the DOCX file
+            if has_valid_sn:
+                # Only do basic checks - trust that S.N means it's a valid framework
+                if not title or len(title.strip()) < 3:
+                    continue
+                # Skip obvious document headers
+                title_lower = title.lower().strip()
+                if any(title_lower.startswith(prefix) for prefix in ('comprehensive', 'the following', 'table present', 'table ', 'figure ', 'page ')):
+                    continue
+                # Skip if title is just whitespace or very short
+                if len(title.strip()) <= 2:
+                    continue
+            else:
+                # No valid S.N, apply strict validation
+                if sn_col is not None:
+                    continue  # Skip if S.N column exists but value is invalid
+                
+                # Apply all strict validations for rows without valid S.N
+                if not title or len(title) < 5:
+                    continue
+                
+                title_lower = title.lower().strip()
+                if any(title_lower.startswith(prefix) for prefix in ('comprehensive', 'the following', 'table present', 'table ', 'figure ', 'page ')):
+                    continue
+                
+                title_words = [w for w in title.split() if w.strip()]
+                if len(title_words) == 1:
+                    single_word = title_words[0]
+                    if not (single_word.isupper() and len(single_word) >= 2) and len(single_word) < 8:
+                        continue
+                
+                if title_lower.strip() in ['for', 'to', 'by', 'the', 'a', 'an', 'that', 'this', 'is', 'are', 'was', 'were', 'and', 'or', 'of', 'in', 'on', 'at', 'more', 'remains', 'subsequent', 'catalogs', 'eptual', 'focuses', 'itself', 'specifically', 'whether', 'other', 'properties']:
+                    continue
+                
+                if title_words and title_words[0].lower() in ['for', 'to', 'by', 'and', 'or', 'the', 'a', 'an', 'that', 'this', 'is', 'are', 'was', 'were', 'of', 'in', 'on', 'at', 'more', 'remains', 'subsequent', 'focuses', 'itself', 'specifically', 'whether', 'other']:
+                    continue
+                
+                if len(title) < 15 and title[0].islower() and title_lower not in ['iso', 'iec']:
+                    continue
+                
+                if title_words and not (title_words[0][0].isupper() or title_words[0].isupper()):
+                    continue
+                
+                if len(title) > 300 and not any(c.isupper() for c in title[:50]):
+                    continue
             
             # Extract reference with hyperlink support
             reference = ''
@@ -777,70 +876,6 @@ class Command(BaseCommand):
                 else:
                     # No hyperlink found, just use the text
                     reference = ref_text[:500] if ref_text else ''  # Truncate if needed
-            
-            # Skip if title is too short or looks like a document header
-            if not title or len(title) < 5:
-                continue
-            
-            # Skip document headers
-            title_lower = title.lower().strip()
-            if any(title_lower.startswith(prefix) for prefix in ('comprehensive', 'the following', 'table present', 'table ', 'figure ', 'page ')):
-                continue
-            
-            # Skip rows that look like continuation rows or fragments
-            title_words = [w for w in title.split() if w.strip()]
-            
-            # Skip single-word titles unless they're clearly acronyms or proper names
-            if len(title_words) == 1:
-                single_word = title_words[0]
-                # Only allow if it's an acronym (all caps, 2+ chars) or a long proper name
-                if not (single_word.isupper() and len(single_word) >= 2) and len(single_word) < 8:
-                    continue
-            
-            # Skip if title is clearly just a fragment word (common stop words)
-            if title_lower.strip() in ['for', 'to', 'by', 'the', 'a', 'an', 'that', 'this', 'is', 'are', 'was', 'were', 'and', 'or', 'of', 'in', 'on', 'at', 'more', 'remains', 'remains', 'subsequent', 'catalogs', 'eptual', 'focuses', 'itself', 'specifically', 'whether', 'other', 'properties']:
-                continue
-            
-            # Skip if title starts with lowercase preposition/connector (likely a fragment)
-            if title_words and title_words[0].lower() in ['for', 'to', 'by', 'and', 'or', 'the', 'a', 'an', 'that', 'this', 'is', 'are', 'was', 'were', 'of', 'in', 'on', 'at', 'more', 'remains', 'subsequent', 'focuses', 'itself', 'specifically', 'whether', 'other']:
-                continue
-            
-            # Skip if title starts with lowercase and is very short (likely a fragment)
-            if len(title) < 15 and title[0].islower() and title_lower not in ['iso', 'iec']:
-                continue
-            
-            # A valid paper title should start with a capital letter (unless it's an acronym)
-            if title_words and not (title_words[0][0].isupper() or title_words[0].isupper()):
-                continue
-            
-            # Additional validation: check if title looks like abstract text or sentence fragment
-            # Real paper titles usually don't end with common sentence endings unless they're questions
-            if title.rstrip().endswith(('.', ',', ';', ':')) and not title.rstrip().endswith('?'):
-                # Might be a fragment, but allow if it's short and looks like a title
-                if len(title) > 100:
-                    continue
-            
-            # Skip titles that look like they're from the abstract column (contain common abstract phrases)
-            abstract_phrases = ['summarizes', 'identifies', 'proposes', 'presents', 'focuses on', 'aims to', 'intended to', 'designed to']
-            if any(phrase in title_lower for phrase in abstract_phrases) and len(title) > 80:
-                # Likely abstract text, not a title
-                continue
-            
-            # Require at least one other field to be present (year, authors, or abstract)
-            # This helps filter out continuation rows that only have partial data
-            has_year = bool(year_str and year_str.strip())
-            has_authors = bool(authors and authors.strip() and len(authors.strip()) > 3)
-            has_abstract = bool(abstract and abstract.strip() and len(abstract.strip()) > 20)
-            
-            if not (has_year or has_authors or has_abstract):
-                # If we don't have year, authors, or abstract, this is likely a continuation row
-                continue
-            
-            # Skip if title is extremely long without proper structure (likely a parsing error)
-            if len(title) > 300:
-                # Check if it has any structure (capitalization, punctuation)
-                if not any(c.isupper() for c in title[:50]):
-                    continue
             
             # Extract year
             year = None
