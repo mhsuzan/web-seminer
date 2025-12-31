@@ -343,23 +343,20 @@ def search_criteria(request):
         ).values_list('name', flat=True).order_by('order', 'name')
         criteria_keywords = ', '.join(all_framework_criteria) if all_framework_criteria else '—'
         
-        # Filter out definitions that are identical or very similar to the description
-        description_normalized = criterion.description.strip().lower() if criterion.description else ''
         unique_definitions = []
+        seen_definitions = set()
+        
         for definition in criterion.definitions.all():
             definition_text = definition.definition_text.strip()
-            definition_normalized = definition_text.lower()
-            
-            # Skip if definition is identical to description
-            if description_normalized and definition_normalized == description_normalized:
+            if not definition_text:
                 continue
             
-            # Skip if definition is very similar (one is a substring of the other with small difference)
-            if description_normalized and definition_normalized:
-                if (definition_normalized in description_normalized or 
-                    description_normalized in definition_normalized) and \
-                    abs(len(definition_normalized) - len(description_normalized)) < 20:
-                    continue
+            definition_normalized = definition_text.lower()
+            
+            # Skip exact duplicates only
+            if definition_normalized in seen_definitions:
+                continue
+            seen_definitions.add(definition_normalized)
             
             unique_definitions.append(definition_text)
         
@@ -430,14 +427,12 @@ def criterion_definitions(request):
     ).prefetch_related('definitions').order_by('framework')
     
     definitions_data = []
-    seen_definitions = set()  # Track to prevent duplicates
+    seen_definitions = set()
     for criterion in criteria:
         for definition in criterion.definitions.all():
-            # Normalize definition text for deduplication
             def_text = definition.definition_text.strip() if definition.definition_text else ''
             if def_text:
                 def_key = def_text.lower()
-                # Skip if we've seen this exact definition for this framework
                 framework_def_key = (criterion.framework.id, def_key)
                 if framework_def_key not in seen_definitions:
                     seen_definitions.add(framework_def_key)
