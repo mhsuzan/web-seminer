@@ -71,7 +71,7 @@
                         {% if fw_data.definitions %}
                             <ul style="margin: 0; padding-left: 1.5rem;">
                                 {% for definition in fw_data.definitions %}
-                                <li style="margin-bottom: 0.75rem; line-height: 1.5;">{{ definition|truncatewords:25 }}</li>
+                                <li style="margin-bottom: 0.75rem; line-height: 1.5;">{{ definition }}</li>
                                 {% endfor %}
                             </ul>
                         {% else %}
